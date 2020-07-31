@@ -3,14 +3,13 @@ package components
 import (
 	"log"
 	"os"
-)
-
-var (
-	BarHeight         = 21 - 2 * BarPadding
-	BarPadding        = 1
+	"runtime"
+	"time"
 )
 
 type Basic = func(interval uint64) string
+
+type Async = func(channel chan string)
 
 func check(err error) {
 	if err != nil {
@@ -58,4 +57,22 @@ func calculateUnit(value *float64, units []string) string {
 	}
 
 	return units[unit]
+}
+
+func mapValueOrDefault(valueMap map[string]string, key, defaultValue string) string {
+	if value, ok := valueMap[key]; ok {
+		return value
+	} else {
+		pc, _, _, ok := runtime.Caller(1)
+		details := runtime.FuncForPC(pc)
+		if ok && details != nil {
+			log.Printf("unknown key: %s - %s", details.Name(), key)
+		}
+		return defaultValue
+	}
+}
+
+func profilingLog(start time.Time) {
+	//_, file, _, _ := runtime.Caller(1)
+	//log.Printf("init-%s: %s", filepath.Base(file), time.Since(start))
 }

@@ -7,22 +7,12 @@ import (
 	"strings"
 )
 
-var (
-	Batteries        = 2
-	BatteryPath      = "/sys/class/power_supply"
-	BatteryIconPlug  = "\uf1e6"
-	BatteryIconFull  = "\uf240"
-	BatteryIconHigh  = "\uf241"
-	BatteryIconHalf  = "\uf242"
-	BatteryIconLow   = "\uf243"
-	BatteryIconEmpty = "\uf244"
-	BatteryPerfect   = "^d^"
-	BatteryGood      = "^c#00ff00^"
-	BatteryOkay      = "^c#ffff00^"
-	BatteryBad       = "^c#ff0000^"
-)
+type BatteryStruct struct {
+	index int
+}
 
-func batteryStatus(path string) int {
+func (b *BatteryStruct) Capacity() int {
+	path := fmt.Sprintf("%s/BAT%d/capacity", BatteryPath, b.index)
 	var capacity int
 
 	if fileExists(path) {
@@ -36,53 +26,49 @@ func batteryStatus(path string) int {
 	return capacity
 }
 
-func batteryStatusDrawing(capacity int) string {
+func (b *BatteryStruct) Drawing() string {
 	var icon string
 	var status string
 
+	capacity := b.Capacity()
+
 	switch {
 	case capacity > 95:
-		status = BatteryPerfect
-		icon = BatteryIconFull
+		status = "^d^"
+		icon = IconBatteryFull
 	case capacity > 75:
-		status = BatteryGood
-		icon = BatteryIconHigh
+		status = "^c#00ff00^"
+		icon = IconBatterHigh
 	case capacity > 50:
-		status = BatteryOkay
-		icon = BatteryIconHalf
+		status = "^c#ffff00^"
+		icon = IconBatteryHalf
 	case capacity > 25:
-		status = BatteryOkay
-		icon = BatteryIconLow
+		status = "^c#ff8800^"
+		icon = IconBatteryLow
 	default:
-		status = BatteryBad
-		icon = BatteryIconEmpty
+		status = "^c#ff0000^"
+		icon = IconBatteryEmpty
 	}
 
 	return fmt.Sprintf("%s%s %d%%", status, icon, capacity)
-}
-
-func batteryLoading() bool {
-	data, err := ioutil.ReadFile(fmt.Sprintf("%s/AC/online", BatteryPath))
-	check(err)
-
-	online, err := strconv.Atoi(strings.TrimSpace(string(data)))
-	check(err)
-
-	return online == 1
 }
 
 func Battery(_ uint64) string {
 	output := make([]string, Batteries)
 
 	for i := 0; i < Batteries; i++ {
-		capacity := batteryStatus(fmt.Sprintf("%s/BAT%d/capacity", BatteryPath, i))
-		output[i] = batteryStatusDrawing(capacity)
+		battery := &BatteryStruct{i}
+		output[i] = battery.Drawing()
 	}
 
-	acConnected := batteryLoading()
+	data, err := ioutil.ReadFile(fmt.Sprintf("%s/AC/online", BatteryPath))
+	check(err)
 
-	if acConnected {
-		output = append([]string{BatteryIconPlug}, output...)
+	online, err := strconv.Atoi(strings.TrimSpace(string(data)))
+	check(err)
+
+	if online == 1 {
+		output = append([]string{IconBatteryPlug}, output...)
 	}
 
 	return strings.Join(output, " ") + "^d^"

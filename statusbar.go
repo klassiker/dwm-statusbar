@@ -3,10 +3,10 @@ package main
 import (
 	"errors"
 	"fmt"
+	"github.com/klassiker/dwm-statusbar/components"
 	"os"
 	"os/signal"
 	"runtime/debug"
-	"statusbar/components"
 	"strings"
 	"syscall"
 	"time"
@@ -18,36 +18,56 @@ var (
 	statusSeparatorStart = "["
 	statusSeparatorMid   = "] ["
 	statusSeparatorEnd   = "]"
-	inputs               = [2][]Component{
+	inputs               = [2][]*Component{
 		{
-			{components.Network, 2 * 1000, nil},
-			{components.Pulseaudio, 2 * 1000, nil},
-			{components.Memory, 2 * 1000, nil},
-			{components.CPUPercentBar, 2 * 1000, nil},
-			{components.Battery, 10 * 1000, nil},
-			{components.CurrentTime, 1 * 1000, nil},
+			{function: components.Network, interval: 2 * 1000},
+			{register: components.Pulseaudio},
+			{function: components.Memory, interval: 2 * 1000},
+			{function: components.CPUPercentBar, interval: 2 * 1000},
+			{function: components.Battery, interval: 10 * 1000},
+			{function: components.CurrentTime, interval: 1 * 1000},
 		},
 		{
-			{components.Uptime, 60 * 1000, nil},
-			{components.Filesystem, 60 * 1000, nil},
-			{components.Thermal, 1 * 1000, nil},
-			{components.MPD, 2 * 1000, nil},
+			{function: components.Uptime, interval: 60 * 1000},
+			{function: components.Filesystem, interval: 60 * 1000},
+			{function: components.Thermal, interval: 1 * 1000},
+			{register: components.Sound},
 		},
 	}
 )
 
 type StatusUpdate struct {
-	index  int
-	status string
+	index   int
+	status  string
+	instant bool
 }
 
 type Component struct {
 	function components.Basic
+	register components.Async
 	interval uint64
 	channel  chan *StatusUpdate
+	update   *StatusUpdate
 }
 
-func (c Component) Run(position int) {
+func (cp *Component) UpdateStatus() {
+	cp.Update(cp.Status())
+}
+
+func (cp *Component) Update(status string) {
+	cp.update.status = strings.TrimSpace(status)
+	cp.channel <- cp.update
+}
+
+func (cp *Component) Status() string {
+	return cp.function(cp.interval)
+}
+
+func (cp *Component) IsAsync() bool {
+	return cp.function == nil || cp.interval == 0
+}
+
+func (cp *Component) Run() {
 	defer func() {
 		if r := recover(); r != nil {
 			err, ok := r.(error)
@@ -60,33 +80,40 @@ func (c Component) Run(position int) {
 		}
 	}()
 
-	status := &StatusUpdate{index: position}
+	if cp.interval < 0 {
+		cp.UpdateStatus()
+	} else if cp.IsAsync() {
+		channel := make(chan string)
+		go cp.register(channel)
 
-	if c.interval < 0 {
-		res := c.function(c.interval)
+		for {
+			select {
+			case msg := <-channel:
+				cp.Update(msg)
+			}
+		}
+	} else {
+		cp.UpdateStatus()
 
-		status.status = res
-
-		c.channel <- status
-		return
-	}
-
-	for {
-		res := c.function(c.interval)
-
-		status.status = strings.TrimSpace(res)
-
-		c.channel <- status
-
-		time.Sleep(time.Duration(c.interval) * time.Millisecond)
+		for range time.Tick(time.Duration(cp.interval) * time.Millisecond) {
+			go cp.UpdateStatus()
+		}
 	}
 }
 
-func fillChannels(inputs []Component, channels []chan *StatusUpdate, offset int) {
+func fillChannels(inputs []*Component, channels []chan *StatusUpdate, offset int) {
 	for i, component := range inputs {
+		position := i + offset
+
 		component.channel = make(chan *StatusUpdate)
-		channels[i+offset] = component.channel
-		go component.Run(i + offset)
+		component.update = &StatusUpdate{
+			index:   position,
+			instant: component.IsAsync(),
+		}
+
+		channels[position] = component.channel
+
+		go component.Run()
 	}
 }
 
@@ -120,6 +147,7 @@ func main() {
 		}(ch)
 	}
 
+	trigger := make(chan bool)
 	statusTop := make([]string, inputsTop)
 	statusBot := make([]string, inputsBot)
 
@@ -128,7 +156,11 @@ func main() {
 		outBot := []string{statusSeparatorStart, "", statusSeparatorEnd}
 
 		for {
-			time.Sleep(time.Duration(baseInterval) * time.Millisecond)
+			// wait for ticker or trigger
+			select {
+			case <-time.Tick(time.Duration(baseInterval) * time.Millisecond):
+			case <-trigger:
+			}
 
 			outTop[1] = strings.Join(statusTop, statusSeparatorMid)
 			outBot[1] = strings.Join(statusBot, statusSeparatorMid)
@@ -145,6 +177,10 @@ func main() {
 			statusTop[input.index] = input.status
 		} else {
 			statusBot[input.index-inputsTop] = input.status
+		}
+
+		if input.instant {
+			trigger <- true
 		}
 	}
 

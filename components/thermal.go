@@ -9,17 +9,12 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"time"
 )
 
 var (
-	ThermalInputs       = []string{"coretemp"}
 	ThermalInputPattern = regexp.MustCompile(`^temp[0-9]+_input$`)
 	ThermalPath         = "/sys/class/hwmon/"
-	ThermalIconCold     = "\uf2cb"
-	ThermalIconLow      = "\uf2ca"
-	ThermalIconOkay     = "\uf2c9"
-	ThermalIconHigh     = "\uf2c8"
-	ThermalIconBurn     = "\uf2c7"
 	ThermalPerfect      = "^d^"
 	ThermalGood         = "^c#00ff00^"
 	ThermalOkay         = "^c#ffff00^"
@@ -43,19 +38,19 @@ func thermalTemperatureDrawing(temperature float64) string {
 	switch {
 	case temperature < 40.0:
 		status = ThermalPerfect
-		icon = ThermalIconCold
+		icon = IconThermalCold
 	case temperature < 55.0:
 		status = ThermalPerfect
-		icon = ThermalIconLow
+		icon = IconThermalLow
 	case temperature < 70.0:
 		status = ThermalGood
-		icon = ThermalIconOkay
+		icon = IconThermalOkay
 	case temperature < 80.0:
 		status = ThermalOkay
-		icon = ThermalIconHigh
+		icon = IconThermalHigh
 	default:
 		status = ThermalBad
-		icon = ThermalIconBurn
+		icon = IconThermalBurn
 	}
 
 	return fmt.Sprintf("%s%s %0.1f°C", status, icon, temperature)
@@ -108,7 +103,7 @@ func thermalInputsByNames(names []string) []string {
 
 		for _, file := range files {
 			if ThermalInputPattern.Match([]byte(file.Name())) {
-				tmp[index] = append(tmp[index], path + "/" + file.Name())
+				tmp[index] = append(tmp[index], path+"/"+file.Name())
 			}
 		}
 	}
@@ -121,11 +116,15 @@ func thermalInputsByNames(names []string) []string {
 }
 
 func init() {
-	ThermalInputs = thermalInputsByNames(strings.Split(Config["thermal"]["hwmons"], ","))
+	start := time.Now()
+
+	ThermalInputs = thermalInputsByNames(ThermalInputs)
 
 	if len(ThermalInputs) == 0 {
 		panic(errors.New("thermal: no thermal input found"))
 	}
+
+	profilingLog(start)
 }
 
 func Thermal(_ uint64) string {

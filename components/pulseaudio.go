@@ -4,23 +4,17 @@ import (
 	"fmt"
 	"github.com/godbus/dbus"
 	"github.com/sqp/pulseaudio"
+	"log"
 	"math"
 	"strconv"
 	"strings"
+	"time"
 )
 
 var (
-	PulseaudioDevice             = "alsa_output.pci-XXXX_XX_XX.X.analog-stereo"
-	PulseaudioHeadphonePort      = "analog-output-headphones"
-	PulseaudioSink               = dbus.ObjectPath("/org/pulseaudio/coreX/sinkX")
-	PulseaudioClient             = new(PulseaudioClientStruct)
-	PulseaudioState              = new(PulseaudioStateStruct)
-	PulseaudioVolumeFull         = 65536.0
-	PulseaudioIconHeadphones     = "\uf025"
-	PulseaudioIconVolumeNullIcon = "\uf026"
-	PulseaudioIconVolumeLowIcon  = "\uf027"
-	PulseaudioIconVolumeHighIcon = "\uf028"
-	PulseaudioIconVolumeMuteIcon = "\uf6a9"
+	PulseaudioCore   *pulseaudio.Object
+	PulseaudioClient *PulseaudioClientStruct
+	PulseaudioState  = new(PulseaudioStateStruct)
 )
 
 type PulseaudioStateStruct struct {
@@ -29,111 +23,139 @@ type PulseaudioStateStruct struct {
 	activePort    dbus.ObjectPath
 	headphonePort dbus.ObjectPath
 	volumeRead    []uint32
+	channel       chan string
 }
 
-type PulseaudioClientStruct struct {
-	*pulseaudio.Client
+func (ps *PulseaudioStateStruct) Headphones() bool {
+	return PulseaudioState.activePort == PulseaudioState.headphonePort
 }
 
-func (cl *PulseaudioClientStruct) DeviceActivePortUpdated(path dbus.ObjectPath, port dbus.ObjectPath) {
-	if path != PulseaudioSink {
-		return
+func (ps *PulseaudioStateStruct) Icon() string {
+	switch {
+	case ps.muted:
+		return IconPulseaudioVolumeMute
+	case ps.volume >= 50:
+		return IconPulseaudioVolumeHigh
+	case ps.volume >= 25:
+		return IconPulseaudioVolumeLow
+	default:
+		return IconPulseaudioVolumeNull
 	}
-
-	PulseaudioState.activePort = port
 }
 
-func (cl *PulseaudioClientStruct) DeviceMuteUpdated(path dbus.ObjectPath, muted bool) {
-	if path != PulseaudioSink {
-		return
-	}
-
-	PulseaudioState.muted = muted
+func (ps *PulseaudioStateStruct) Port(port dbus.ObjectPath) {
+	ps.activePort = port
+	ps.Update()
 }
 
-// We take the average of all channels
-func (cl *PulseaudioClientStruct) DeviceVolumeUpdated(path dbus.ObjectPath, values []uint32) {
-	if path != PulseaudioSink {
-		return
-	}
+func (ps *PulseaudioStateStruct) Muted(muted bool) {
+	ps.muted = muted
+	ps.Update()
+}
 
+func (ps *PulseaudioStateStruct) Volume(values []uint32) {
 	var sum float64
 
 	for _, value := range values {
-		sum += math.Round(float64(value) / PulseaudioVolumeFull * 100)
+		sum += math.Round(float64(value) / 65536.0 * 100)
 	}
 
-	PulseaudioState.volume = int(sum / float64(len(values)))
+	ps.volume = int(sum / float64(len(values)))
+	ps.Update()
 }
 
-func init() {
-	conf := Config["pulseaudio"]
-	PulseaudioDevice = conf["device"]
-	PulseaudioHeadphonePort = conf["headphonePort"]
-	PulseaudioSink = dbus.ObjectPath(conf["sinkPath"])
-
-	pulse, err := pulseaudio.New()
-	check(err)
-
-	PulseaudioClient.Client = pulse
-	pulse.Register(PulseaudioClient)
-
-	// Try to find the sink by the device name, if that fails use default
+func (ps *PulseaudioStateStruct) Reset() {
 	var sinks []dbus.ObjectPath
-	core := PulseaudioClient.Core()
-	check(core.Get("Sinks", &sinks))
+	check(PulseaudioCore.Get("Sinks", &sinks))
 
 	for _, sink := range sinks {
 		var name string
 		conf := PulseaudioClient.Device(sink)
 		check(conf.Get("Name", &name))
 
-		if name == PulseaudioDevice {
-			PulseaudioSink = sink
+		if strings.HasPrefix(name, PulseaudioDevice) {
+			obj := PulseaudioClient.Device(sink)
+
+			check(obj.Get("Mute", &ps.muted))
+			check(obj.Get("Volume", &ps.volumeRead))
+			check(obj.Get("ActivePort", &ps.activePort))
+
+			_ = obj.Call("GetPortByName", 0, PulseaudioHeadphonePort).Store(&ps.headphonePort)
+
+			PulseaudioClient.DeviceVolumeUpdated(sink, ps.volumeRead)
+
+			return
 		}
 	}
 
-	device := PulseaudioClient.Device(PulseaudioSink)
-	check(device.Get("Mute", &PulseaudioState.muted))
-	check(device.Get("Volume", &PulseaudioState.volumeRead))
-	check(device.Get("ActivePort", &PulseaudioState.activePort))
-	check(device.Call("GetPortByName", 0, PulseaudioHeadphonePort).Store(&PulseaudioState.headphonePort))
-
-	PulseaudioClient.DeviceVolumeUpdated(PulseaudioSink, PulseaudioState.volumeRead)
-
-	go pulse.Listen()
+	log.Println("Pulseaudio: no active sink with device prefix found!")
 }
 
-func pulseaudioVolumeIcon() string {
-	var volumeIcon string
-	switch {
-	case PulseaudioState.muted:
-		volumeIcon = PulseaudioIconVolumeMuteIcon
-	case PulseaudioState.volume >= 50:
-		volumeIcon = PulseaudioIconVolumeHighIcon
-	case PulseaudioState.volume >= 25:
-		volumeIcon = PulseaudioIconVolumeLowIcon
-	default:
-		volumeIcon = PulseaudioIconVolumeNullIcon
-	}
-	return volumeIcon
+func (ps *PulseaudioStateStruct) Channel(channel chan string) {
+	ps.channel = channel
+	ps.Update()
 }
 
-func Pulseaudio(_ uint64) string {
-	headphones := PulseaudioState.activePort == PulseaudioState.headphonePort
-	volume := fmt.Sprintf("%s%%", strconv.Itoa(PulseaudioState.volume))
-	volumeIcon := pulseaudioVolumeIcon()
+func (ps *PulseaudioStateStruct) Update() {
+	volume := fmt.Sprintf("%s%%", strconv.Itoa(ps.volume))
+	output := []string{ps.Icon()}
 
-	var output []string
-	if headphones {
-		output = []string{
-			volumeIcon, PulseaudioIconHeadphones, volume,
-		}
+	if ps.Headphones() {
+		output = append(output, IconPulseaudioHeadphones, volume)
 	} else {
-		output = []string{
-			volumeIcon, volume,
-		}
+		output = append(output, volume)
 	}
 
-	return strings.Join(output, " ")
+	ps.channel <- strings.Join(output, " ")
+}
+
+type PulseaudioClientStruct struct {
+	*pulseaudio.Client
+}
+
+func (cl *PulseaudioClientStruct) NewSink(_ dbus.ObjectPath) {
+	PulseaudioState.Reset()
+}
+
+func (cl *PulseaudioClientStruct) SinkRemoved(_ dbus.ObjectPath) {
+	PulseaudioState.Reset()
+}
+
+func (cl *PulseaudioClientStruct) DeviceActivePortUpdated(path dbus.ObjectPath, port dbus.ObjectPath) {
+	if strings.HasPrefix(string(path), PulseaudioSinkPrefix) {
+		PulseaudioState.Port(port)
+	}
+}
+
+func (cl *PulseaudioClientStruct) DeviceMuteUpdated(path dbus.ObjectPath, muted bool) {
+	if strings.HasPrefix(string(path), PulseaudioSinkPrefix) {
+		PulseaudioState.Muted(muted)
+	}
+}
+
+func (cl *PulseaudioClientStruct) DeviceVolumeUpdated(path dbus.ObjectPath, values []uint32) {
+	if strings.HasPrefix(string(path), PulseaudioSinkPrefix) {
+		PulseaudioState.Volume(values)
+	}
+}
+
+func init() {
+	start := time.Now()
+
+	pulse, err := pulseaudio.New()
+	check(err)
+
+	PulseaudioClient = &PulseaudioClientStruct{pulse}
+	PulseaudioCore = PulseaudioClient.Core()
+
+	pulse.Register(PulseaudioClient)
+
+	go PulseaudioState.Reset()
+	go pulse.Listen()
+
+	profilingLog(start)
+}
+
+func Pulseaudio(channel chan string) {
+	PulseaudioState.Channel(channel)
 }

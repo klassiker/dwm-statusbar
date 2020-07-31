@@ -10,7 +10,6 @@ import (
 
 var (
 	MemoryPath              = "/proc/meminfo"
-	MemoryIcon              = "\uf538"
 	MemoryBarWidth          = 40
 	MemoryBarForeground     = "#0000ff"
 	MemoryBarBackground     = "#000000"
@@ -62,10 +61,10 @@ func Memory(_ uint64) string {
 
 	memBar := memoryCalculateBar(memUsed / float64(MemoryData["MemTotal"]))
 	memUnit := calculateUnit(&memUsed, MemoryUnits)
-	memUsedString := strconv.FormatFloat(math.Round(memUsed * 100) / 100, 'f', 2, 64) + memUnit
+	memUsedString := strconv.FormatFloat(math.Round(memUsed*100)/100, 'f', 2, 64) + memUnit
 
 	output := []string{
-		MemoryIcon, memUsedString, memBar,
+		IconMemory, memUsedString, memBar,
 	}
 
 	return strings.Join(output, " ")

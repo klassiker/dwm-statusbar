@@ -10,14 +10,8 @@ import (
 )
 
 var (
-	FilesystemPath       = "/proc/mounts"
-	FilesystemRootPath   = "/"
-	FilesystemHomePath   = "/home"
-	FilesystemSDCardPath = "/mnt/sdcard"
-	FilesystemIconSDCard = "\uf7c2"
-	FilesystemIconHDD    = "\uf0a0"
-	FilesystemIconHome   = "\uf015"
-	FilesystemUnits      = []string{
+	FilesystemPath  = "/proc/mounts"
+	FilesystemUnits = []string{
 		"B", "KB", "MB", "GB", "TB",
 	}
 )
@@ -28,8 +22,8 @@ func filesystemData(path string) string {
 
 	blockSize := uint64(statFs.Bsize)
 	filledSize := statFs.Blocks - statFs.Bfree
-	totalSize := float64(blockSize*(filledSize+statFs.Bavail))
-	usedSize := float64(blockSize*filledSize)
+	totalSize := float64(blockSize * (filledSize + statFs.Bavail))
+	usedSize := float64(blockSize * filledSize)
 
 	unitUsed, unitTotal := calculateUnit(&usedSize, FilesystemUnits), calculateUnit(&totalSize, FilesystemUnits)
 
@@ -39,8 +33,8 @@ func filesystemData(path string) string {
 	return fmt.Sprintf("%s%s/%s%s", usedSizeString, unitUsed, totalSizeString, unitTotal)
 }
 
-func filesystemMounts() map[string]bool {
-	mounts := make(map[string]bool)
+func filesystemMounts() map[string]string {
+	mounts := make(map[string]string)
 
 	data, err := ioutil.ReadFile(FilesystemPath)
 	check(err)
@@ -54,42 +48,33 @@ func filesystemMounts() map[string]bool {
 
 		mount := strings.Split(line, " ")[1]
 
-		switch mount {
-		case FilesystemRootPath, FilesystemHomePath, FilesystemSDCardPath:
-			mounts[mount] = true
+		for _, config := range FilesystemMounts {
+			if config.path == mount {
+				mounts[mount] = filesystemData(config.path)
+			}
 		}
 	}
 
 	return mounts
 }
 
-func filesystemStatus(path string, out []string, mounts map[string]bool, position int) {
-	if _, ok := mounts[path]; ok {
-		out[position] = filesystemData(path)
+func filesystemStatus(path string, mounts map[string]string) (result string) {
+	if value, ok := mounts[path]; ok {
+		result = value
 	} else {
-		out[position] = "REMOVED"
+		result = "REMOVED"
 	}
-}
-
-func init() {
-	conf := Config["filesystem"]
-	FilesystemRootPath = conf["root"]
-	FilesystemHomePath = conf["home"]
-	FilesystemSDCardPath = conf["sdcard"]
+	return
 }
 
 func Filesystem(_ uint64) string {
 	mounts := filesystemMounts()
 
-	output := []string{
-		FilesystemIconHDD, "",
-		FilesystemIconHome, "",
-		FilesystemIconSDCard, "",
-	}
+	var output []string
 
-	filesystemStatus(FilesystemRootPath, output, mounts, 1)
-	filesystemStatus(FilesystemHomePath, output, mounts, 3)
-	filesystemStatus(FilesystemSDCardPath, output, mounts, 5)
+	for _, config := range FilesystemMounts {
+		output = append(output, config.icon, filesystemStatus(config.path, mounts))
+	}
 
 	return strings.Join(output, " ")
 }

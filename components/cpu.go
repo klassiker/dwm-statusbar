@@ -12,15 +12,14 @@ import (
 
 var (
 	CPUPath              = "/proc/stat"
-	CPUIcon              = "\uf2db"
 	CPUCores             = 4
-	CPUData              = make([]CPUDataStore, CPUCores + 1)
+	CPUData              = make([]CPUDataStore, CPUCores+1)
 	CPUBarWidth          = 5
 	CPUBarForeground     = "#ff0000"
 	CPUBarBackground     = "#000000"
 	CPUBarDrawBackground = fmt.Sprintf("^c%s^^r0,%d,%d,%d^", CPUBarBackground, BarPadding, CPUBarWidth, BarHeight)
-	CPUBarDrawForeground = fmt.Sprintf("^c%s^^r0,%s,%d,%s^^f%d^", CPUBarForeground, "%d", CPUBarWidth, "%d", CPUBarWidth + 2 * BarPadding)
-	CPUBARDrawLast       = fmt.Sprintf("^f%d^^d^", -2 * BarPadding)
+	CPUBarDrawForeground = fmt.Sprintf("^c%s^^r0,%s,%d,%s^^f%d^", CPUBarForeground, "%d", CPUBarWidth, "%d", CPUBarWidth+2*BarPadding)
+	CPUBARDrawLast       = fmt.Sprintf("^f%d^^d^", -2*BarPadding)
 	CPUBarDraw           = CPUBarDrawBackground + CPUBarDrawForeground
 )
 
@@ -74,7 +73,7 @@ func CPUPercentBar(_ uint64) string {
 	cpuPercent := cpuReadData()
 
 	output := []string{
-		fmt.Sprintf("%s %0.0f%% ", CPUIcon, math.Round(cpuPercent[0] * 100.0)),
+		fmt.Sprintf("%s %0.0f%% ", IconCPU, math.Round(cpuPercent[0]*100.0)),
 		"",
 	}
 	cpuPercent = cpuPercent[1:]
