@@ -64,8 +64,8 @@ func (sss *SoundStatesStruct) Icons(current string) []string {
 func (sss *SoundStatesStruct) Title(title, state string) string {
 	if state == "stop" {
 		return ""
-	} else if len(title)+3 > SoundTitleMaxLength {
-		return title[:SoundTitleMaxLength] + "..."
+	} else if len(title) > SoundTitleMaxLength {
+		return strings.TrimSpace(title[:SoundTitleMaxLength - 3]) + "..."
 	} else {
 		return title
 	}
