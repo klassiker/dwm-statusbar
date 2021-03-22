@@ -2,7 +2,6 @@ package components
 
 import (
 	"strings"
-	"time"
 )
 
 var (
@@ -88,22 +87,14 @@ func (sss *SoundStatesStruct) Output() string {
 	return strings.Join(output, " ")
 }
 
-func init() {
-	start := time.Now()
-
-	go soundPulseaudio()
-	go soundMPDListen()
-	go soundMPRISListen()
-	SoundMPDState.Reset()
-
-	profilingLog(start)
-}
-
 func soundUpdate() {
 	SoundChannel <- SoundStates.Output()
 }
 
 func Sound(channel chan string) {
 	SoundChannel = channel
+	go soundPulseaudio()
+	go soundMPDListen()
+	go soundMPRISListen()
 	soundUpdate()
 }

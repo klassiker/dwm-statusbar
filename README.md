@@ -18,7 +18,13 @@ Example output (there are more colors in use depending on the sensor levels):
 
 ## Install
 
-Since we use colors, draw stuff and use two bars the patch `dwm-status2d-extrabar-6.2.diff` is required: https://dwm.suckless.org/patches/status2d/
+`git clone`, configure, `go install`. Done.
+
+Since we use colors, draw stuff and use two bars this patch `dwm-status2d-extrabar-6.2.diff` is highly recommended: https://dwm.suckless.org/patches/status2d/
+
+If you don't want to use two separate bars use only one array of components in the inputs in `statusbar.go`.
+
+If you don't want drawings and colors use the `-nodraw` flag.
 
 ## Config
 

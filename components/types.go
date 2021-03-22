@@ -1,11 +1,24 @@
 package components
 
 import (
+	"fmt"
 	"log"
 	"os"
 	"runtime"
 	"time"
 )
+
+const (
+	DrawReset = "^d^"
+)
+
+func drawColor(color string) string {
+	if color == "" {
+		return ""
+	} else {
+		return fmt.Sprintf("^c%s^", color)
+	}
+}
 
 type Basic = func(interval uint64) string
 
@@ -62,14 +75,15 @@ func calculateUnit(value *float64, units []string) string {
 func mapValueOrDefault(valueMap map[string]string, key, defaultValue string) string {
 	if value, ok := valueMap[key]; ok {
 		return value
-	} else {
+	} else if key != "" {
 		pc, _, _, ok := runtime.Caller(1)
 		details := runtime.FuncForPC(pc)
 		if ok && details != nil {
 			log.Printf("unknown key: %s - %s", details.Name(), key)
 		}
-		return defaultValue
 	}
+
+	return defaultValue
 }
 
 func profilingLog(start time.Time) {

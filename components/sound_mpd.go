@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net"
 	"strings"
+	"sync"
 	"time"
 )
 
@@ -13,26 +14,37 @@ var (
 )
 
 type SoundMPDStateStruct struct {
+	*sync.Mutex
 	values     map[string]string
 	connection *net.UnixConn
 }
 
 func NewSoundMPDState() *SoundMPDStateStruct {
 	return &SoundMPDStateStruct{
+		Mutex:  &sync.Mutex{},
 		values: make(map[string]string),
 	}
 }
 
 func (ms *SoundMPDStateStruct) Set(key, value string) {
+	ms.Lock()
+	defer ms.Unlock()
+
 	ms.values[strings.ToLower(key)] = value
 }
 
-func (ms *SoundMPDStateStruct) Has(key string) (ok bool) {
-	_, ok = ms.values[strings.ToLower(key)]
-	return
+func (ms *SoundMPDStateStruct) Has(key string) bool {
+	ms.Lock()
+	defer ms.Unlock()
+
+	_, ok := ms.values[strings.ToLower(key)]
+	return ok
 }
 
 func (ms *SoundMPDStateStruct) Reset() {
+	ms.Lock()
+	defer ms.Unlock()
+
 	ms.values = map[string]string{"state": "stop", "file": "", "artist": "", "title": "", "changed": ""}
 }
 
@@ -96,18 +108,23 @@ func (ms *SoundMPDStateStruct) Update() {
 }
 
 func (ms *SoundMPDStateStruct) Current() (string, string, string) {
-	var title string
+	ms.Lock()
+	defer ms.Unlock()
+
+	state := ms.values["state"]
+	title := ms.values["file"]
 
 	if ms.values["artist"] != "" && ms.values["title"] != "" {
 		title = fmt.Sprintf("%s - %s", ms.values["artist"], ms.values["title"])
-	} else {
-		title = ms.values["file"]
 	}
 
-	return "mpd", ms.values["state"], title
+	return "mpd", state, title
 }
 
 func (ms *SoundMPDStateStruct) IsActive() bool {
+	ms.Lock()
+	defer ms.Unlock()
+
 	return ms.values["state"] == "play"
 }
 

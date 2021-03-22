@@ -2,13 +2,8 @@ package main
 
 import (
 	"errors"
-	"fmt"
 	"github.com/klassiker/dwm-statusbar/components"
-	"os"
-	"os/signal"
-	"runtime/debug"
 	"strings"
-	"syscall"
 	"time"
 )
 
@@ -18,7 +13,7 @@ var (
 	statusSeparatorStart = "["
 	statusSeparatorMid   = "] ["
 	statusSeparatorEnd   = "]"
-	inputs               = [2][]*Component{
+	inputs               = [][]*Component{
 		{
 			{function: components.Network, interval: 2 * 1000},
 			{register: components.Pulseaudio},
@@ -37,17 +32,18 @@ var (
 )
 
 type StatusUpdate struct {
-	index   int
-	status  string
-	instant bool
+	index, row int
+	instant    bool
+	status     string
 }
 
 type Component struct {
-	function components.Basic
-	register components.Async
-	interval uint64
-	channel  chan *StatusUpdate
-	update   *StatusUpdate
+	function   components.Basic
+	register   components.Async
+	interval   uint64
+	aggregator chan *StatusUpdate
+	index, row int
+	instant    bool
 }
 
 func (cp *Component) UpdateStatus() {
@@ -55,8 +51,12 @@ func (cp *Component) UpdateStatus() {
 }
 
 func (cp *Component) Update(status string) {
-	cp.update.status = strings.TrimSpace(status)
-	cp.channel <- cp.update
+	cp.aggregator <- &StatusUpdate{
+		index:   cp.index,
+		row:     cp.row,
+		instant: cp.instant,
+		status:  strings.TrimSpace(status),
+	}
 }
 
 func (cp *Component) Status() string {
@@ -86,118 +86,71 @@ func (cp *Component) Run() {
 		channel := make(chan string)
 		go cp.register(channel)
 
-		for {
-			select {
-			case msg := <-channel:
-				cp.Update(msg)
-			}
+		for msg := range channel {
+			cp.Update(msg)
 		}
 	} else {
 		cp.UpdateStatus()
 
-		for range time.Tick(time.Duration(cp.interval) * time.Millisecond) {
-			go cp.UpdateStatus()
+		ticker := time.NewTicker(time.Duration(cp.interval) * time.Millisecond)
+
+		for range ticker.C {
+			cp.UpdateStatus()
 		}
 	}
 }
 
-func fillChannels(inputs []*Component, channels []chan *StatusUpdate, offset int) {
-	for i, component := range inputs {
-		position := i + offset
+func initComponents() chan *StatusUpdate {
+	agg := make(chan *StatusUpdate)
 
-		component.channel = make(chan *StatusUpdate)
-		component.update = &StatusUpdate{
-			index:   position,
-			instant: component.IsAsync(),
+	for row, cps := range inputs {
+		for index, cp := range cps {
+			cp.aggregator = agg
+			cp.index = index
+			cp.row = row
+			cp.instant = cp.IsAsync()
+			go cp.Run()
 		}
-
-		channels[position] = component.channel
-
-		go component.Run()
 	}
-}
 
-func init() {
-	c := make(chan os.Signal)
-	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
-
-	go func() {
-		<-c
-		fmt.Println("- Ctrl+C pressed in Terminal")
-		cleanup(nil)
-	}()
+	return agg
 }
 
 func main() {
-	inputsTop := len(inputs[0])
-	inputsBot := len(inputs[1])
-	inputsInt := inputsTop + inputsBot
+	status := make([][]string, len(inputs))
+	output := []string{statusSeparatorStart, "", statusSeparatorEnd}
 
-	channels := make([]chan *StatusUpdate, inputsInt)
-	fillChannels(inputs[0], channels, 0)
-	fillChannels(inputs[1], channels, inputsTop)
+	for i := 0; i < len(inputs); i++ {
+		status[i] = make([]string, len(inputs[i]))
 
-	agg := make(chan *StatusUpdate)
+		if i == 0 {
+			continue
+		}
 
-	for _, ch := range channels {
-		go func(c chan *StatusUpdate) {
-			for msg := range c {
-				agg <- msg
-			}
-		}(ch)
+		output = append(output, dwmSeparator, statusSeparatorStart, "", statusSeparatorEnd)
 	}
 
-	trigger := make(chan bool)
-	statusTop := make([]string, inputsTop)
-	statusBot := make([]string, inputsBot)
+	updateStatus := func() {
+		xsetroot(strings.Join(output, ""))
+	}
 
-	go func() {
-		outTop := []string{statusSeparatorStart, "", statusSeparatorEnd}
-		outBot := []string{statusSeparatorStart, "", statusSeparatorEnd}
+	agg := initComponents()
+	ticker := time.NewTicker(time.Duration(baseInterval) * time.Millisecond)
 
-		for {
-			// wait for ticker or trigger
-			select {
-			case <-time.Tick(time.Duration(baseInterval) * time.Millisecond):
-			case <-trigger:
-			}
-
-			outTop[1] = strings.Join(statusTop, statusSeparatorMid)
-			outBot[1] = strings.Join(statusBot, statusSeparatorMid)
-
-			xsetroot(strings.Join(outTop, "") + dwmSeparator + strings.Join(outBot, ""))
-		}
-	}()
-
-	var input *StatusUpdate
 	for {
-		input = <-agg
+		select {
+		case <-ticker.C:
+			updateStatus()
+		case update := <-agg:
+			status[update.row][update.index] = update.status
+			output[update.row*4+1] = strings.Join(status[update.row], statusSeparatorMid)
 
-		if input.index < inputsTop {
-			statusTop[input.index] = input.status
-		} else {
-			statusBot[input.index-inputsTop] = input.status
-		}
-
-		if input.instant {
-			trigger <- true
+			if update.instant {
+				updateStatus()
+			}
+		case <-shutdown:
+			cleanup(nil)
 		}
 	}
 
-}
-
-func cleanup(err error) {
-	if XConn != nil {
-		if err != nil {
-			xsetroot(err.Error())
-		}
-
-		XConn.Close()
-	}
-
-	if err != nil {
-		debug.PrintStack()
-	}
-
-	os.Exit(1)
 }

@@ -4,8 +4,8 @@ package components
 
 import (
 	"fmt"
-	"io/ioutil"
 	"math"
+	"os"
 	"strconv"
 	"strings"
 )
@@ -30,7 +30,7 @@ type CPUDataStore struct {
 }
 
 func cpuReadData() []float64 {
-	data, err := ioutil.ReadFile(CPUPath)
+	data, err := os.ReadFile(CPUPath)
 	check(err)
 
 	info := filter(strings.Split(string(data), "\n"), func(s string) bool {
@@ -71,11 +71,12 @@ func cpuReadData() []float64 {
 
 func CPUPercentBar(_ uint64) string {
 	cpuPercent := cpuReadData()
+	cpuText := fmt.Sprintf("%s %0.0f%% ", IconCPU, math.Round(cpuPercent[0]*100.0))
 
-	output := []string{
-		fmt.Sprintf("%s %0.0f%% ", IconCPU, math.Round(cpuPercent[0]*100.0)),
-		"",
+	if NoDraw {
+		return cpuText
 	}
+
 	cpuPercent = cpuPercent[1:]
 
 	var draw string
@@ -85,7 +86,11 @@ func CPUPercentBar(_ uint64) string {
 		draw += fmt.Sprintf(CPUBarDraw, offset, height)
 	}
 
-	output[1] = draw + CPUBARDrawLast
+	output := []string{
+		cpuText,
+		draw,
+		CPUBARDrawLast,
+	}
 
 	return strings.Join(output, "")
 }

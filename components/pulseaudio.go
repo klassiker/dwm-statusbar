@@ -93,7 +93,7 @@ func (ps *PulseaudioStateStruct) Reset() {
 
 func (ps *PulseaudioStateStruct) Channel(channel chan string) {
 	ps.channel = channel
-	ps.Update()
+	ps.Reset()
 }
 
 func (ps *PulseaudioStateStruct) Update() {
@@ -150,7 +150,6 @@ func init() {
 
 	pulse.Register(PulseaudioClient)
 
-	go PulseaudioState.Reset()
 	go pulse.Listen()
 
 	profilingLog(start)

@@ -3,7 +3,6 @@ package components
 import (
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -15,29 +14,32 @@ import (
 var (
 	ThermalInputPattern = regexp.MustCompile(`^temp[0-9]+_input$`)
 	ThermalPath         = "/sys/class/hwmon/"
-	ThermalPerfect      = "^d^"
-	ThermalGood         = "^c#00ff00^"
-	ThermalOkay         = "^c#ffff00^"
-	ThermalBad          = "^c#ff0000^"
+	ThermalPerfect      = drawColor("")
+	ThermalCold         = drawColor("#0000ff")
+	ThermalGood         = drawColor("#00ff00")
+	ThermalOkay         = drawColor("#ffff00")
+	ThermalBad          = drawColor("#ff0000")
 )
 
-func thermalTemperature(input string) float64 {
-	data, err := ioutil.ReadFile(input)
+func thermalTemperature(input string) string {
+	data, err := os.ReadFile(input)
 	check(err)
 
 	tempRaw, err := strconv.Atoi(strings.TrimSpace(string(data)))
 	check(err)
 
-	return float64(tempRaw) / 1000.0
+	return thermalTemperatureDrawing(float64(tempRaw) / 1000.0)
 }
 
 func thermalTemperatureDrawing(temperature float64) string {
 	var icon string
 	var status string
 
+	reset := DrawReset
+
 	switch {
 	case temperature < 40.0:
-		status = ThermalPerfect
+		status = ThermalCold
 		icon = IconThermalCold
 	case temperature < 55.0:
 		status = ThermalPerfect
@@ -53,7 +55,15 @@ func thermalTemperatureDrawing(temperature float64) string {
 		icon = IconThermalBurn
 	}
 
-	return fmt.Sprintf("%s%s %0.1f°C", status, icon, temperature)
+	if NoDraw {
+		status = ""
+	}
+
+	if status == "" {
+		reset = ""
+	}
+
+	return fmt.Sprintf("%s%s %0.1f°C%s", status, icon, temperature, reset)
 }
 
 func thermalInputsByNames(names []string) []string {
@@ -65,7 +75,7 @@ func thermalInputsByNames(names []string) []string {
 		tmp[i] = []string{}
 	}
 
-	dirs, err := ioutil.ReadDir(ThermalPath)
+	dirs, err := os.ReadDir(ThermalPath)
 	check(err)
 
 	for _, dir := range dirs {
@@ -79,7 +89,7 @@ func thermalInputsByNames(names []string) []string {
 			continue
 		}
 
-		files, err := ioutil.ReadDir(path)
+		files, err := os.ReadDir(path)
 		check(err)
 
 		var index int
@@ -89,7 +99,7 @@ func thermalInputsByNames(names []string) []string {
 				continue
 			}
 
-			nameRaw, err := ioutil.ReadFile(path + "/name")
+			nameRaw, err := os.ReadFile(path + "/name")
 			check(err)
 
 			name := strings.TrimSpace(string(nameRaw))
@@ -131,9 +141,8 @@ func Thermal(_ uint64) string {
 	output := make([]string, len(ThermalInputs))
 
 	for i, input := range ThermalInputs {
-		temperature := thermalTemperature(input)
-		output[i] = thermalTemperatureDrawing(temperature)
+		output[i] = thermalTemperature(input)
 	}
 
-	return strings.Join(output, " ") + "^d^"
+	return strings.Join(output, " ")
 }

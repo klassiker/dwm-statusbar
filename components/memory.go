@@ -2,8 +2,8 @@ package components
 
 import (
 	"fmt"
-	"io/ioutil"
 	"math"
+	"os"
 	"strconv"
 	"strings"
 )
@@ -33,7 +33,7 @@ func memoryCalculateBar(percent float64) string {
 }
 
 func memoryReadData() {
-	data, err := ioutil.ReadFile(MemoryPath)
+	data, err := os.ReadFile(MemoryPath)
 	check(err)
 
 	for _, line := range strings.Split(string(data), "\n") {
@@ -61,10 +61,14 @@ func Memory(_ uint64) string {
 
 	memBar := memoryCalculateBar(memUsed / float64(MemoryData["MemTotal"]))
 	memUnit := calculateUnit(&memUsed, MemoryUnits)
-	memUsedString := strconv.FormatFloat(math.Round(memUsed*100)/100, 'f', 2, 64) + memUnit
+	memUsedString := strconv.FormatFloat(math.Round(memUsed*100)/100, 'f', 2, 64)
 
 	output := []string{
-		IconMemory, memUsedString, memBar,
+		IconMemory, memUsedString + memUnit,
+	}
+
+	if !NoDraw {
+		output = append(output, memBar)
 	}
 
 	return strings.Join(output, " ")

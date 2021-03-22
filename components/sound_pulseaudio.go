@@ -2,46 +2,66 @@ package components
 
 import (
 	"github.com/godbus/dbus"
+	"log"
+	"sync"
 	"time"
 )
 
 type SoundPulseaudioStateStruct struct {
+	*sync.Mutex
 	streams, filtered map[dbus.ObjectPath]map[string]string
 }
 
 func NewSoundPulseaudioState() *SoundPulseaudioStateStruct {
 	return &SoundPulseaudioStateStruct{
+		Mutex:    &sync.Mutex{},
 		streams:  make(map[dbus.ObjectPath]map[string]string),
 		filtered: make(map[dbus.ObjectPath]map[string]string),
 	}
 }
 
 func (ps *SoundPulseaudioStateStruct) AddStream(path dbus.ObjectPath) {
+	// we need to wait some time for the information to be available
 	time.Sleep(100 * time.Millisecond)
 
 	var properties map[string]string
-	check(PulseaudioClient.Stream(path).Get("PropertyList", &properties))
+	err := PulseaudioClient.Stream(path).Get("PropertyList", &properties)
+
+	if err != nil {
+		log.Println(err.Error(), path)
+		return
+	}
+
+	ps.Lock()
 	ps.streams[path] = properties
-	ps.filtered[path] = properties
 
 	binary := properties["application.process.binary"]
 	for _, listed := range SoundPulseaudioBlacklist {
 		if binary == listed {
-			delete(ps.filtered, path)
+			ps.Unlock()
 			return
 		}
 	}
+
+	ps.filtered[path] = properties
+	ps.Unlock()
 
 	soundUpdate()
 }
 
 func (ps *SoundPulseaudioStateStruct) RemoveStream(path dbus.ObjectPath) {
+	ps.Lock()
 	delete(ps.streams, path)
 	delete(ps.filtered, path)
+	ps.Unlock()
+
 	soundUpdate()
 }
 
 func (ps *SoundPulseaudioStateStruct) Icons() []string {
+	ps.Lock()
+	defer ps.Unlock()
+
 	icons := make([]string, len(ps.streams))
 
 	i := 0
@@ -54,6 +74,9 @@ func (ps *SoundPulseaudioStateStruct) Icons() []string {
 }
 
 func (ps *SoundPulseaudioStateStruct) Current() (string, string, string) {
+	ps.Lock()
+	defer ps.Unlock()
+
 	for _, props := range ps.filtered {
 		return props["application.process.binary"], "unknown", props["media.name"]
 	}
@@ -62,6 +85,9 @@ func (ps *SoundPulseaudioStateStruct) Current() (string, string, string) {
 }
 
 func (ps *SoundPulseaudioStateStruct) IsActive() bool {
+	ps.Lock()
+	defer ps.Unlock()
+
 	return len(ps.filtered) > 0
 }
 
@@ -80,6 +106,6 @@ func soundPulseaudio() {
 	check(PulseaudioCore.Get("PlaybackStreams", &list))
 
 	for _, path := range list {
-		go SoundPulseaudioState.AddStream(path)
+		SoundPulseaudioState.AddStream(path)
 	}
 }

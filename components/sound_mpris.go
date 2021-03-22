@@ -33,9 +33,10 @@ func (ms *SoundMPRISStateStruct) Metadata(data dbus.Variant) {
 }
 
 func (ms *SoundMPRISStateStruct) Stream(data dbus.Variant) {
-	full := data.Value().([]string)[0]
-
-	ms.stream = strings.Split(full, ".")[3]
+	full := data.Value().([]string)
+	if len(full) > 0 {
+		ms.stream = strings.Split(full[0], ".")[3]
+	}
 }
 
 func (ms *SoundMPRISStateStruct) Current() (string, string, string) {
@@ -60,17 +61,19 @@ func soundMPRISListen() {
 	object := session.Object("org.mpris.MediaPlayer2.playerctld", "/org/mpris/MediaPlayer2")
 
 	metadata, err := object.GetProperty("org.mpris.MediaPlayer2.Player.Metadata")
-	check(err)
+	if err == nil {
+		SoundMPRISState.Metadata(metadata)
+	}
 
 	playbackStatus, err := object.GetProperty("org.mpris.MediaPlayer2.Player.PlaybackStatus")
-	check(err)
+	if err == nil {
+		SoundMPRISState.State(playbackStatus)
+	}
 
 	stream, err := object.GetProperty("com.github.altdesktop.playerctld.PlayerNames")
-	check(err)
-
-	SoundMPRISState.State(playbackStatus)
-	SoundMPRISState.Metadata(metadata)
-	SoundMPRISState.Stream(stream)
+	if err == nil {
+		SoundMPRISState.Stream(stream)
+	}
 
 	_ = session.BusObject().Call("org.freedesktop.DBus.AddMatch", 0, SoundMPRISMatchPlayer)
 	_ = session.BusObject().Call("org.freedesktop.DBus.AddMatch", 0, SoundMPRISMatchStream)

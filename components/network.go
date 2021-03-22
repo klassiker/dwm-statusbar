@@ -2,9 +2,9 @@ package components
 
 import (
 	"fmt"
-	"io/ioutil"
 	"math"
 	"net"
+	"os"
 	"regexp"
 	"strconv"
 	"strings"
@@ -23,7 +23,7 @@ type NetworkDataStore struct {
 }
 
 func networkReadData() {
-	data, err := ioutil.ReadFile(NetworkPath)
+	data, err := os.ReadFile(NetworkPath)
 	check(err)
 
 	lines := strings.Split(NetworkRegex.ReplaceAllString(string(data), " "), "\n")
@@ -79,7 +79,7 @@ func networkCalculateSpeed(iface string, interval uint64) string {
 func Network(interval uint64) string {
 	var output []string
 
-	// TODO: use a passive dbus listenner to reduce traffic
+	// TODO: use a passive dbus listenner to reduce traffic, reduces execution time by 15ms
 	for _, unit := range NetworkVPNServices {
 		if dbusStringProperty(unit.unit, unit.property, unit.required) {
 			output = append(output, IconNetworkVPN)

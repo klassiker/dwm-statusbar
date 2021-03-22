@@ -2,8 +2,8 @@ package components
 
 import (
 	"fmt"
-	"io/ioutil"
 	"math"
+	"os"
 	"strconv"
 	"strings"
 	"syscall"
@@ -36,7 +36,7 @@ func filesystemData(path string) string {
 func filesystemMounts() map[string]string {
 	mounts := make(map[string]string)
 
-	data, err := ioutil.ReadFile(FilesystemPath)
+	data, err := os.ReadFile(FilesystemPath)
 	check(err)
 
 	lines := strings.Split(string(data), "\n")
@@ -58,13 +58,12 @@ func filesystemMounts() map[string]string {
 	return mounts
 }
 
-func filesystemStatus(path string, mounts map[string]string) (result string) {
+func filesystemStatus(path string, mounts map[string]string) string {
 	if value, ok := mounts[path]; ok {
-		result = value
+		return value
 	} else {
-		result = "REMOVED"
+		return "REMOVED"
 	}
-	return
 }
 
 func Filesystem(_ uint64) string {

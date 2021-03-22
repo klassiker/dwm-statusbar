@@ -16,11 +16,12 @@ type ConfigDBusService struct {
 }
 
 var (
+	NoDraw = false
+
 	BarHeight  = 21 - 2*BarPadding
 	BarPadding = 1
 
 	Batteries   = 2
-	BatteryPath = "/sys/class/power_supply"
 
 	FilesystemMounts = []ConfigFilesystem{
 		{"/", IconFilesystemRoot},
@@ -64,39 +65,40 @@ var (
 )
 
 const (
-	IconBatteryPlug          = "\uf1e6"
-	IconBatteryFull          = "\uf240"
-	IconBatterHigh           = "\uf241"
-	IconBatteryHalf          = "\uf242"
-	IconBatteryLow           = "\uf243"
-	IconBatteryEmpty         = "\uf244"
-	IconCPU                  = "\uf2db"
-	IconCurrentTimeCalendar  = "\uf073"
-	IconCurrentTimeClock     = "\uf017"
-	IconFilesystemRoot       = "\uf0a0"
-	IconFilesystemHome       = "\uf015"
-	IconMemory               = "\uf538"
-	IconNetworkWifi          = "\uf1eb"
-	IconNetworkCable         = "\uf796"
-	IconNetworkMobile        = "\uf519"
-	IconNetworkVPN           = "\uf084"
-	IconPulseaudioHeadphones = "\uf025"
-	IconPulseaudioVolumeNull = "\uf026"
-	IconPulseaudioVolumeLow  = "\uf027"
-	IconPulseaudioVolumeHigh = "\uf028"
-	IconPulseaudioVolumeMute = "\uf6a9"
-	IconSoundStatePlay       = "\uf04b"
-	IconSoundStatePause      = "\uf04c"
-	IconSoundStateStop       = "\uf04d"
-	IconSoundStateUnknown    = "\uf128"
-	IconSoundPlayerMPD       = "\uf001"
-	IconSoundPlayerChrome    = "\uf268"
-	IconSoundPlayerFirefox   = "\ue007"
-	IconSoundPlayerMPV       = "\uf87c"
-	IconSoundPlayerUnknown   = "\uf059"
-	IconThermalCold          = "\uf2cb"
-	IconThermalLow           = "\uf2ca"
-	IconThermalOkay          = "\uf2c9"
-	IconThermalHigh          = "\uf2c8"
-	IconThermalBurn          = "\uf2c7"
+	IconBatteryPlug          = "\uf1e6" // plug
+	IconBatteryFull          = "\uf240" // battery-full
+	IconBatterHigh           = "\uf241" // battery-three-quarters
+	IconBatteryHalf          = "\uf242" // battery-half
+	IconBatteryLow           = "\uf243" // battery-quarter
+	IconBatteryEmpty         = "\uf244" // battery-empty
+	IconCPU                  = "\uf2db" // microchip
+	IconCurrentTimeCalendar  = "\uf073" // calendar-alt
+	IconCurrentTimeClock     = "\uf017" // clock
+	IconFilesystemRoot       = "\uf0a0" // hdd
+	IconFilesystemHome       = "\uf015" // home
+	IconMemory               = "\uf538" // memory
+	IconNetworkWifi          = "\uf1eb" // wifi
+	IconNetworkCable         = "\uf796" // ethernet
+	IconNetworkMobile        = "\uf519" // broadcast-tower
+	IconNetworkVPN           = "\uf084" // key
+	IconPulseaudioHeadphones = "\uf025" // headphones
+	IconPulseaudioVolumeNull = "\uf026" // volume-off
+	IconPulseaudioVolumeLow  = "\uf027" // volume-down
+	IconPulseaudioVolumeHigh = "\uf028" // volume-up
+	IconPulseaudioVolumeMute = "\uf6a9" // volume-mute
+	IconSoundStatePlay       = "\uf04b" // play
+	IconSoundStatePause      = "\uf04c" // pause
+	IconSoundStateStop       = "\uf04d" // stop
+	IconSoundStateUnknown    = "\uf128" // question
+	IconSoundPlayerMPD       = "\uf001" // music
+	IconSoundPlayerChrome    = "\uf268" // chrome
+	IconSoundPlayerFirefox   = "\ue007" // firefox-browser
+	IconSoundPlayerMPV       = "\uf87c" // photo-video
+	IconSoundPlayerMail      = "\uf0e0" // envelope
+	IconSoundPlayerUnknown   = "\uf059" // question-circle
+	IconThermalCold          = "\uf2cb" // thermometer-empty
+	IconThermalLow           = "\uf2ca" // thermometer-quarter
+	IconThermalOkay          = "\uf2c9" // thermometer-half
+	IconThermalHigh          = "\uf2c8" // thermometer-three-quarters
+	IconThermalBurn          = "\uf2c7" // thermometer-full
 )
