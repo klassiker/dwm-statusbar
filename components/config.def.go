@@ -101,4 +101,5 @@ const (
 	IconThermalOkay          = "\uf2c9" // thermometer-half
 	IconThermalHigh          = "\uf2c8" // thermometer-three-quarters
 	IconThermalBurn          = "\uf2c7" // thermometer-full
+	IconUptime               = "\uf062" // arrow-up
 )

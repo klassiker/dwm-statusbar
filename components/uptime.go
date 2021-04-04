@@ -31,5 +31,5 @@ func Uptime(_ uint64) string {
 		durationString = fmt.Sprintf("%0.0fs", seconds)
 	}
 
-	return durationString
+	return IconUptime + " " + durationString
 }
