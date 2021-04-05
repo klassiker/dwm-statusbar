@@ -10,7 +10,7 @@ Dependencies:
 - ttf-font-awesome
 - github.com/godbus/dbus (for dbus communication - pulseaudio, service monitoring)
 - github.com/sqp/pulseaudio (to communicate with the pulseaudio daemon)
-- github.com/BurntSushi/xgb (to avoid using xsetroot as external command)
+- github.com/jezek/xgb (to avoid using xsetroot as external command)
 
 Example output (there are more colors in use depending on the sensor levels):
 
