@@ -29,7 +29,7 @@ func check(err error) {
 
 func xsetroot(name string) {
 	if *debugFlag {
-		//log.Println(name)
+		log.Println(name)
 		return
 	}
 	data := []byte(name)

@@ -19,11 +19,11 @@ var (
 			{register: components.Pulseaudio},
 			{function: components.Memory, interval: 2 * 1000},
 			{function: components.CPUPercentBar, interval: 2 * 1000},
-			{function: components.Battery, interval: 10 * 1000},
 			{function: components.CurrentTime, interval: 1 * 1000},
 		},
 		{
 			{function: components.Uptime, interval: 60 * 1000},
+			{function: components.Battery, interval: 10 * 1000},
 			{function: components.Filesystem, interval: 60 * 1000},
 			{function: components.Thermal, interval: 1 * 1000},
 			{register: components.Sound},
