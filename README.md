@@ -20,7 +20,9 @@ Example output (there are more colors in use depending on the sensor levels):
 
 `git clone`, configure, `go install`. Done.
 
-Since we use colors, draw stuff and use two bars this patch `dwm-status2d-extrabar-6.2.diff` is highly recommended: https://dwm.suckless.org/patches/status2d/
+Since this bar uses colors, draws stuff and uses two bars this patch `dwm-status2d-extrabar-6.2.diff` is highly recommended: https://dwm.suckless.org/patches/status2d/
+
+I use a slightly modified version of the patch which allows you to use a configurable amount of additional bars that are automatically hidden when there is nothing to display (statusbar can not handle this yet, I only use 1 bar at the moment) or manually reduced if you press a shortcut. It also fixes a calculation bug in `status2d` which prevented the `ClkStatusText` button press from working and crashes on incomplete formatting input. Diffs for 6.2 and current master are in `diffs/`, if you find them useful feel free to submit them to the official `patches` pages.
 
 If you don't want to use two separate bars use only one array of components in the inputs in `statusbar.go`.
 
