@@ -23,18 +23,21 @@ func NewSoundMPRISState() *SoundMPRISStateStruct {
 }
 
 func (ms *SoundMPRISStateStruct) State(state dbus.Variant) {
-	ms.status = state.Value().(string)
+	ms.status, _ = state.Value().(string)
 }
 
 func (ms *SoundMPRISStateStruct) Metadata(data dbus.Variant) {
 	metadata := data.Value().(map[string]dbus.Variant)
-	ms.artist = metadata["xesam:artist"].Value().([]string)[0]
-	ms.title = metadata["xesam:title"].Value().(string)
+	artist, ok := metadata["xesam:artist"].Value().([]string)
+	if ok {
+		ms.artist = artist[0]
+	}
+	ms.title, ok = metadata["xesam:title"].Value().(string)
 }
 
 func (ms *SoundMPRISStateStruct) Stream(data dbus.Variant) {
-	full := data.Value().([]string)
-	if len(full) > 0 {
+	full, ok := data.Value().([]string)
+	if ok && len(full) > 0 {
 		ms.stream = strings.Split(full[0], ".")[3]
 	}
 }
@@ -83,7 +86,10 @@ func soundMPRISListen() {
 	for m := range ch {
 		var ok bool
 		var value dbus.Variant
-		arg := m.Body[1].(map[string]dbus.Variant)
+		arg, ok := m.Body[1].(map[string]dbus.Variant)
+		if !ok {
+			continue
+		}
 
 		if value, ok = arg["PlaybackStatus"]; ok {
 			SoundMPRISState.State(value)
