@@ -54,7 +54,7 @@ func memoryReadData() {
 	}
 }
 
-func Memory(_ uint64) string {
+func Memory(_ int64) string {
 	memoryReadData()
 
 	memUsed := float64(MemoryData["MemTotal"] - MemoryData["MemFree"] - MemoryData["Buffers"] - MemoryData["Cached"] - MemoryData["SReclaimable"] + MemoryData["Shmem"])

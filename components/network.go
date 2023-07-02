@@ -76,7 +76,7 @@ func networkCalculateSpeed(iface string, interval uint64) string {
 	return fmt.Sprintf("%s%s / %s%s", txString, unitTx, rxString, unitRx)
 }
 
-func Network(interval uint64) string {
+func Network(interval int64) string {
 	var output []string
 
 	// TODO use a passive dbus listener to reduce traffic, reduces execution time by 15ms
@@ -96,7 +96,7 @@ func Network(interval uint64) string {
 		}
 
 		if icon, ok := NetworkInterfaces[iface.Name]; ok {
-			speed := networkCalculateSpeed(iface.Name, interval)
+			speed := networkCalculateSpeed(iface.Name, uint64(interval))
 			output = append(output, fmt.Sprintf("%s %s", icon, speed))
 		}
 	}

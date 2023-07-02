@@ -137,7 +137,7 @@ func init() {
 	profilingLog(start)
 }
 
-func Thermal(_ uint64) string {
+func Thermal(_ int64) string {
 	output := make([]string, len(ThermalInputs))
 
 	for i, input := range ThermalInputs {

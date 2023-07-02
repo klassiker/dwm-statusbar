@@ -102,9 +102,8 @@ func (ms *SoundMPDStateStruct) Update() {
 	check(err)
 
 	ms.Parse(responseRead)
-	if SoundChannel != nil {
-		soundUpdate()
-	}
+
+	soundUpdate()
 }
 
 func (ms *SoundMPDStateStruct) Current() (string, string, string) {

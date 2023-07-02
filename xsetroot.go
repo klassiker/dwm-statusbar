@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"flag"
 	"fmt"
 	"github.com/jezek/xgb"
@@ -78,6 +79,18 @@ func init() {
 	}
 
 	components.NoDraw = *nodraw
+}
+
+func recovery() {
+	if r := recover(); r != nil {
+		err, ok := r.(error)
+
+		if !ok {
+			err = errors.New(r.(string))
+		}
+
+		cleanup(err)
+	}
 }
 
 func cleanup(err error) {

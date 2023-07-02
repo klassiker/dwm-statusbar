@@ -7,7 +7,7 @@ import (
 	"time"
 )
 
-func Uptime(_ uint64) string {
+func Uptime(_ int64) string {
 	var info syscall.Sysinfo_t
 	check(syscall.Sysinfo(&info))
 

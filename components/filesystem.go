@@ -66,7 +66,7 @@ func filesystemStatus(path string, mounts map[string]string) string {
 	}
 }
 
-func Filesystem(_ uint64) string {
+func Filesystem(_ int64) string {
 	mounts := filesystemMounts()
 
 	var output []string

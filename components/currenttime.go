@@ -5,7 +5,7 @@ import (
 	"time"
 )
 
-func CurrentTime(_ uint64) string {
+func CurrentTime(_ int64) string {
 	timeNow := time.Now()
 	output := []string{
 		IconCurrentTimeCalendar, timeNow.Format("2006-01-02"),

@@ -69,7 +69,7 @@ func cpuReadData() []float64 {
 	return cpuPercent
 }
 
-func CPUPercentBar(_ uint64) string {
+func CPUPercentBar(_ int64) string {
 	cpuPercent := cpuReadData()
 	cpuText := fmt.Sprintf("%s %0.0f%% ", IconCPU, math.Round(cpuPercent[0]*100.0))
 

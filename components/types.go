@@ -20,7 +20,7 @@ func drawColor(color string) string {
 	}
 }
 
-type Basic = func(interval uint64) string
+type Basic = func(interval int64) string
 
 type Async = func(channel chan string)
 

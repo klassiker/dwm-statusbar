@@ -81,7 +81,7 @@ func acOnline() bool {
 	return online == 1
 }
 
-func Battery(_ uint64) string {
+func Battery(_ int64) string {
 	output := make([]string, Batteries)
 
 	for i := 0; i < Batteries; i++ {

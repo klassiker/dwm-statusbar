@@ -1,7 +1,6 @@
 package main
 
 import (
-	"errors"
 	"github.com/klassiker/dwm-statusbar/components"
 	"strings"
 	"time"
@@ -43,7 +42,7 @@ type StatusUpdate struct {
 type Component struct {
 	function   components.Basic
 	register   components.Async
-	interval   uint64
+	interval   int64
 	aggregator chan *StatusUpdate
 	index, row int
 	instant    bool
@@ -72,17 +71,7 @@ func (cp *Component) IsAsync() bool {
 }
 
 func (cp *Component) Run() {
-	defer func() {
-		if r := recover(); r != nil {
-			err, ok := r.(error)
-
-			if !ok {
-				err = errors.New(r.(string))
-			}
-
-			cleanup(err)
-		}
-	}()
+	defer recovery()
 
 	if cp.interval < 0 {
 		cp.UpdateStatus()
