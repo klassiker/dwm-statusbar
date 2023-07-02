@@ -7,34 +7,37 @@ import (
 	"time"
 )
 
+const (
+	second = 1000
+)
+
 var (
 	baseInterval         = 900
 	dwmSeparator         = ";"
-	statusSeparatorStart = "["
-	statusSeparatorMid   = "] ["
-	statusSeparatorEnd   = "]"
+	statusSeparatorStart = ""
+	statusSeparatorMid   = " | "
+	statusSeparatorEnd   = ""
 	inputs               = [][]*Component{
 		{
-			{function: components.Network, interval: 2 * 1000},
+			{function: components.Network, interval: 1 * second},
 			{register: components.Pulseaudio},
-			{function: components.Memory, interval: 2 * 1000},
-			{function: components.CPUPercentBar, interval: 2 * 1000},
-			{function: components.CurrentTime, interval: 1 * 1000},
+			{function: components.Memory, interval: 2 * second},
+			{function: components.CPUPercentBar, interval: 1 * second},
+			{function: components.CurrentTime, interval: 1 * second},
 		},
 		{
-			{function: components.Uptime, interval: 60 * 1000},
-			{function: components.Battery, interval: 10 * 1000},
-			{function: components.Filesystem, interval: 60 * 1000},
-			{function: components.Thermal, interval: 1 * 1000},
+			{function: components.Uptime, interval: 60 * second},
+			{function: components.Battery, interval: 10 * second},
+			{function: components.Filesystem, interval: 60 * second},
+			{function: components.Thermal, interval: 1 * second},
 			{register: components.Sound},
 		},
 	}
 )
 
 type StatusUpdate struct {
-	index, row int
-	instant    bool
-	status     string
+	*Component
+	status string
 }
 
 type Component struct {
@@ -47,20 +50,21 @@ type Component struct {
 }
 
 func (cp *Component) UpdateStatus() {
-	cp.Update(cp.Status())
+	cp.Update(cp.function(cp.interval))
 }
 
 func (cp *Component) Update(status string) {
 	cp.aggregator <- &StatusUpdate{
-		index:   cp.index,
-		row:     cp.row,
-		instant: cp.instant,
-		status:  strings.TrimSpace(status),
+		Component: cp,
+		status:    strings.TrimSpace(status),
 	}
 }
 
-func (cp *Component) Status() string {
-	return cp.function(cp.interval)
+func (cp *Component) Init(row, index int, agg chan *StatusUpdate) {
+	cp.aggregator = agg
+	cp.index = index
+	cp.row = row
+	cp.instant = cp.IsAsync()
 }
 
 func (cp *Component) IsAsync() bool {
@@ -105,10 +109,7 @@ func initComponents() chan *StatusUpdate {
 
 	for row, cps := range inputs {
 		for index, cp := range cps {
-			cp.aggregator = agg
-			cp.index = index
-			cp.row = row
-			cp.instant = cp.IsAsync()
+			cp.Init(row, index, agg)
 			go cp.Run()
 		}
 	}

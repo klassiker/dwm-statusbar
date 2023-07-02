@@ -79,7 +79,7 @@ func networkCalculateSpeed(iface string, interval uint64) string {
 func Network(interval uint64) string {
 	var output []string
 
-	// TODO: use a passive dbus listenner to reduce traffic, reduces execution time by 15ms
+	// TODO use a passive dbus listener to reduce traffic, reduces execution time by 15ms
 	for _, unit := range NetworkVPNServices {
 		if dbusStringProperty(unit.unit, unit.property, unit.required) {
 			output = append(output, IconNetworkVPN)
