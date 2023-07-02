@@ -76,12 +76,7 @@ func (cp *Component) Run() {
 	if cp.interval < 0 {
 		cp.UpdateStatus()
 	} else if cp.IsAsync() {
-		channel := make(chan string)
-		go cp.register(channel)
-
-		for msg := range channel {
-			cp.Update(msg)
-		}
+		cp.register(cp.Update)
 	} else {
 		cp.UpdateStatus()
 

@@ -23,7 +23,7 @@ type PulseaudioStateStruct struct {
 	activePort    dbus.ObjectPath
 	headphonePort dbus.ObjectPath
 	volumeRead    []uint32
-	channel       chan string
+	update        func(string)
 }
 
 func (ps *PulseaudioStateStruct) Headphones() bool {
@@ -91,11 +91,6 @@ func (ps *PulseaudioStateStruct) Reset() {
 	log.Println("Pulseaudio: no active sink with device prefix found!")
 }
 
-func (ps *PulseaudioStateStruct) Channel(channel chan string) {
-	ps.channel = channel
-	ps.Reset()
-}
-
 func (ps *PulseaudioStateStruct) Update() {
 	volume := fmt.Sprintf("%s%%", strconv.Itoa(ps.volume))
 	output := []string{ps.Icon()}
@@ -106,7 +101,7 @@ func (ps *PulseaudioStateStruct) Update() {
 		output = append(output, volume)
 	}
 
-	ps.channel <- strings.Join(output, " ")
+	ps.update(strings.Join(output, " "))
 }
 
 type PulseaudioClientStruct struct {
@@ -155,6 +150,7 @@ func init() {
 	profilingLog(start)
 }
 
-func Pulseaudio(channel chan string) {
-	PulseaudioState.Channel(channel)
+func Pulseaudio(update func(string)) {
+	PulseaudioState.update = update
+	PulseaudioState.Reset()
 }

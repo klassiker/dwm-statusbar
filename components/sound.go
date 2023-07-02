@@ -5,7 +5,7 @@ import (
 )
 
 var (
-	SoundChannel         chan string
+	SoundUpdate          func(string)
 	SoundPulseaudioState = NewSoundPulseaudioState()
 	SoundMPDState        = NewSoundMPDState()
 	SoundMPRISState      = NewSoundMPRISState()
@@ -64,7 +64,7 @@ func (sss *SoundStatesStruct) Title(title, state string) string {
 	if state == "stop" {
 		return ""
 	} else if len(title) > SoundTitleMaxLength {
-		return strings.TrimSpace(title[:SoundTitleMaxLength - 3]) + "..."
+		return strings.TrimSpace(title[:SoundTitleMaxLength-3]) + "..."
 	} else {
 		return title
 	}
@@ -88,11 +88,11 @@ func (sss *SoundStatesStruct) Output() string {
 }
 
 func soundUpdate() {
-	SoundChannel <- SoundStates.Output()
+	SoundUpdate(SoundStates.Output())
 }
 
-func Sound(channel chan string) {
-	SoundChannel = channel
+func Sound(update func(string)) {
+	SoundUpdate = update
 	go soundPulseaudio()
 	go soundMPDListen()
 	go soundMPRISListen()

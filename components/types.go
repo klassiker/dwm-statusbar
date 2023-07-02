@@ -22,7 +22,7 @@ func drawColor(color string) string {
 
 type Basic = func(interval int64) string
 
-type Async = func(channel chan string)
+type Async = func(channel func(string))
 
 func check(err error) {
 	if err != nil {
