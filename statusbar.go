@@ -119,16 +119,21 @@ func initComponents() chan *StatusUpdate {
 
 func main() {
 	status := make([][]string, len(inputs))
-	output := []string{statusSeparatorStart, "", statusSeparatorEnd}
+	output := make([]string, len(inputs)*4-1)
 
 	for i := 0; i < len(inputs); i++ {
 		status[i] = make([]string, len(inputs[i]))
+
+		offset := i * 4
+
+		output[offset] = statusSeparatorStart
+		output[offset+2] = statusSeparatorEnd
 
 		if i == 0 {
 			continue
 		}
 
-		output = append(output, dwmSeparator, statusSeparatorStart, "", statusSeparatorEnd)
+		output[offset-1] = dwmSeparator
 	}
 
 	updateStatus := func() {
