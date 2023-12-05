@@ -58,8 +58,10 @@ func (ms *SoundMPRISStateStruct) IsActive() bool {
 }
 
 func soundMPRISListen() {
-	session, err := dbus.SessionBus()
+	session, err := dbus.SessionBusPrivate()
 	check(err)
+
+	check(dbusPrivate(session))
 
 	object := session.Object("org.mpris.MediaPlayer2.playerctld", "/org/mpris/MediaPlayer2")
 

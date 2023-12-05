@@ -8,7 +8,6 @@ import (
 	"math"
 	"strconv"
 	"strings"
-	"time"
 )
 
 var (
@@ -135,8 +134,6 @@ func (cl *PulseaudioClientStruct) DeviceVolumeUpdated(path dbus.ObjectPath, valu
 }
 
 func init() {
-	start := time.Now()
-
 	pulse, err := pulseaudio.New()
 	check(err)
 
@@ -146,8 +143,6 @@ func init() {
 	pulse.Register(PulseaudioClient)
 
 	go pulse.Listen()
-
-	profilingLog(start)
 }
 
 func Pulseaudio(update func(string)) {

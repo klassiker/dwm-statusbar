@@ -16,12 +16,8 @@ var (
 	BatteryDead    = drawColor("#ff0000")
 )
 
-type BatteryStruct struct {
-	index int
-}
-
-func (b *BatteryStruct) Capacity() int {
-	path := fmt.Sprintf("%s/BAT%d/capacity", BatteryPath, b.index)
+func batteryCapacity(index int) int {
+	path := fmt.Sprintf("%s/BAT%d/capacity", BatteryPath, index)
 	var capacity int
 
 	if fileExists(path) {
@@ -35,43 +31,7 @@ func (b *BatteryStruct) Capacity() int {
 	return capacity
 }
 
-func (b *BatteryStruct) Drawing() string {
-	var icon string
-	var status string
-
-	capacity := b.Capacity()
-	reset := DrawReset
-
-	switch {
-	case capacity > 95:
-		status = BatteryPerfect
-		icon = IconBatteryFull
-	case capacity > 75:
-		status = BatteryGood
-		icon = IconBatterHigh
-	case capacity > 50:
-		status = BatteryOkay
-		icon = IconBatteryHalf
-	case capacity > 25:
-		status = BatteryBad
-		icon = IconBatteryLow
-	default:
-		status = BatteryDead
-		icon = IconBatteryEmpty
-	}
-
-	if NoDraw {
-		status = ""
-	}
-
-	if status == "" {
-		reset = ""
-	}
-
-	return fmt.Sprintf("%s%s %d%%%s", status, icon, capacity, reset)
-}
-
-func acOnline() bool {
+func batteryAcOnline() bool {
 	data, err := os.ReadFile(fmt.Sprintf("%s/AC/online", BatteryPath))
 	check(err)
 
@@ -85,11 +45,10 @@ func Battery(_ int64) string {
 	output := make([]string, Batteries)
 
 	for i := 0; i < Batteries; i++ {
-		battery := &BatteryStruct{i}
-		output[i] = battery.Drawing()
+		output[i] = batteryDraw(batteryCapacity(i))
 	}
 
-	if acOnline() {
+	if batteryAcOnline() {
 		output = append([]string{IconBatteryPlug}, output...)
 	}
 

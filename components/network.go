@@ -2,6 +2,8 @@ package components
 
 import (
 	"fmt"
+	"github.com/godbus/dbus"
+	"log"
 	"math"
 	"net"
 	"os"
@@ -16,10 +18,34 @@ var (
 	NetworkData  = make(map[string]NetworkDataStore)
 	NetworkCache = make(map[string]NetworkDataStore)
 	NetworkUnits = []string{"KB", "MB"}
+
+	networkDbus *dbus.Conn
 )
+
+func init() {
+	var err error
+	networkDbus, err = dbus.SystemBusPrivate()
+	check(err)
+
+	check(dbusPrivate(networkDbus))
+}
 
 type NetworkDataStore struct {
 	rxBytes, txBytes uint64
+}
+
+func networkUnitActive(unit ConfigNetwork) bool {
+	path := "/org/freedesktop/systemd1/unit/" + dbusEscape(unit.name)
+	object := networkDbus.Object("org.freedesktop.systemd1", path)
+
+	if !object.Path().IsValid() {
+		log.Fatal("Invalid dbus path: ", object.Path())
+	}
+
+	variant, err := object.GetProperty("org.freedesktop.systemd1.Service.StatusText")
+	check(err)
+
+	return variant.Value() == unit.status
 }
 
 func networkReadData() {
@@ -81,7 +107,7 @@ func Network(interval int64) string {
 
 	// TODO use a passive dbus listener to reduce traffic, reduces execution time by 15ms
 	for _, unit := range NetworkVPNServices {
-		if dbusStringProperty(unit.unit, unit.property, unit.required) {
+		if networkUnitActive(unit) {
 			output = append(output, IconNetworkVPN)
 			break
 		}

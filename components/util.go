@@ -2,10 +2,10 @@ package components
 
 import (
 	"fmt"
+	"github.com/godbus/dbus"
 	"log"
 	"os"
 	"runtime"
-	"time"
 )
 
 const (
@@ -86,7 +86,71 @@ func mapValueOrDefault(valueMap map[string]string, key, defaultValue string) str
 	return defaultValue
 }
 
-func profilingLog(start time.Time) {
-	//_, file, _, _ := runtime.Caller(1)
-	//log.Printf("init-%s: %s", filepath.Base(file), time.Since(start))
+func batteryDraw(level int) string {
+	var status string
+	var icon string
+	switch {
+	case level > 95:
+		status = BatteryPerfect
+		icon = IconBatteryFull
+	case level > 75:
+		status = BatteryGood
+		icon = IconBatterHigh
+	case level > 50:
+		status = BatteryOkay
+		icon = IconBatteryHalf
+	case level > 25:
+		status = BatteryBad
+		icon = IconBatteryLow
+	default:
+		status = BatteryDead
+		icon = IconBatteryEmpty
+	}
+
+	if NoDraw {
+		status = ""
+	}
+
+	reset := DrawReset
+	if status == "" {
+		reset = ""
+	}
+
+	return fmt.Sprintf("%s%s %d%%%s", status, icon, level, reset)
+}
+
+func dbusPrivate(conn *dbus.Conn) error {
+	if err := conn.Auth(nil); err != nil {
+		conn.Close()
+		return err
+	}
+
+	if err := conn.Hello(); err != nil {
+		conn.Close()
+		return err
+	}
+
+	return nil
+}
+
+func dbusIsMemberChar(c rune) bool {
+	return (c >= '0' && c <= '9') || (c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z') || c == '_'
+}
+
+func dbusEscape(path dbus.ObjectPath) dbus.ObjectPath {
+	if path.IsValid() {
+		return path
+	}
+
+	var output []rune
+
+	for _, char := range path {
+		if dbusIsMemberChar(char) {
+			output = append(output, char)
+		} else {
+			output = append(output, []rune(fmt.Sprintf("_%x", char))...)
+		}
+	}
+
+	return dbus.ObjectPath(output)
 }

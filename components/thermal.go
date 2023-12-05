@@ -8,7 +8,6 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
-	"time"
 )
 
 var (
@@ -126,15 +125,11 @@ func thermalInputsByNames(names []string) []string {
 }
 
 func init() {
-	start := time.Now()
-
 	ThermalInputs = thermalInputsByNames(ThermalInputs)
 
 	if len(ThermalInputs) == 0 {
 		panic(errors.New("thermal: no thermal input found"))
 	}
-
-	profilingLog(start)
 }
 
 func Thermal(_ int64) string {

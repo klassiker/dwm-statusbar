@@ -1,4 +1,5 @@
-//+build ignore
+//go:build ignore
+// +build ignore
 
 package components
 
@@ -10,9 +11,9 @@ type ConfigFilesystem struct {
 	path, icon string
 }
 
-type ConfigDBusService struct {
-	unit               dbus.ObjectPath
-	property, required string
+type ConfigNetwork struct {
+	name   dbus.ObjectPath
+	status string
 }
 
 var (
@@ -33,8 +34,8 @@ var (
 		"wlan0": IconNetworkWifi,
 		"wwp0":  IconNetworkMobile,
 	}
-	NetworkVPNServices = []ConfigDBusService{
-		{"openvpn-client@profile.service", "org.freedesktop.systemd1.Service.StatusText", "Initialization Sequence Completed"},
+	NetworkVPNServices = []ConfigNetwork{
+		{"openvpn-client@profile.service", "Initialization Sequence Completed"},
 	}
 
 	PulseaudioDevice        = "alsa_output.pci-0000_00_00.0."
