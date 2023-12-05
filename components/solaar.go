@@ -153,5 +153,5 @@ func Solaar(_ int64) string {
 		output[i] = solaarStatus(device)
 	}
 
-	return strings.Join(output, " - ")
+	return strings.Join(output, " ")
 }
