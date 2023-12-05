@@ -7,6 +7,13 @@ import (
 	"github.com/godbus/dbus"
 )
 
+type HidType int
+
+type ConfigSolaar struct {
+	serial  string
+	hidType HidType
+}
+
 type ConfigFilesystem struct {
 	path, icon string
 }
@@ -22,7 +29,12 @@ var (
 	BarHeight  = 21 - 2*BarPadding
 	BarPadding = 1
 
-	Batteries   = 2
+	Batteries = 2
+
+	SolaarDevices = []ConfigSolaar{
+		{"", HidKeyboard},
+		{"", HidMouse},
+	}
 
 	FilesystemMounts = []ConfigFilesystem{
 		{"/", IconFilesystemRoot},
@@ -66,12 +78,24 @@ var (
 )
 
 const (
+	HidMouse HidType = iota
+	HidKeyboard
+)
+
+const (
 	IconBatteryPlug          = "\uf1e6" // plug
 	IconBatteryFull          = "\uf240" // battery-full
 	IconBatterHigh           = "\uf241" // battery-three-quarters
 	IconBatteryHalf          = "\uf242" // battery-half
 	IconBatteryLow           = "\uf243" // battery-quarter
 	IconBatteryEmpty         = "\uf244" // battery-empty
+	IconSolaarCharging       = "\uf0e7" // bolt
+	IconSolaarOffline        = "\uf059" // circle-question
+	IconSolaarUnknown        = "\uf06a" // circle-exclamation
+	IconSolaarWarning        = "\uf071" // triangle-exclamation
+	IconSolaarError          = "\uf00d" // xmark
+	IconSolaarMouse          = "\uf8cc" // computer-mouse
+	IconSolaarKeyboard       = "\uf11c" // keyboard
 	IconCPU                  = "\uf2db" // microchip
 	IconCurrentTimeCalendar  = "\uf073" // calendar-alt
 	IconCurrentTimeClock     = "\uf017" // clock

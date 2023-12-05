@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"github.com/klassiker/dwm-statusbar/components"
 	"strings"
 	"time"
@@ -8,6 +9,7 @@ import (
 
 const (
 	second = 1000
+	minute = 60 * second
 )
 
 var (
@@ -27,6 +29,7 @@ var (
 		{
 			{function: components.Uptime, interval: 60 * second},
 			{function: components.Battery, interval: 10 * second},
+			{function: components.Solaar, interval: 30 * minute},
 			{function: components.Filesystem, interval: 60 * second},
 			{function: components.Thermal, interval: 1 * second},
 			{register: components.Sound},
@@ -121,6 +124,10 @@ func main() {
 	}
 
 	updateStatus := func() {
+		text := strings.Join(output, "")
+		if *debugFlag {
+			fmt.Println("length:", len(text))
+		}
 		xsetroot(strings.Join(output, ""))
 	}
 
