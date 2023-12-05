@@ -24,6 +24,8 @@ Example output (there are more colors in use depending on the sensor levels):
 
 `git clone`, configure, `go install`. Done.
 
+To use the Solaar component for battery status, you need to enable a service running the script `scripts/solaar_dbus.py`, which uses the solaar libraries to provide a DBus service.
+
 Since this bar uses colors, draws stuff and uses two bars this patch `dwm-status2d-extrabar-6.2.diff` is highly recommended: https://dwm.suckless.org/patches/status2d/
 
 I use a slightly modified version of the patch which allows you to use a configurable amount of additional bars that are automatically hidden when there is nothing to display (statusbar can not handle this yet, I only use 1 bar at the moment) or manually reduced if you press a shortcut. It also fixes a calculation bug in `status2d` which prevented the `ClkStatusText` button press from working and crashes on incomplete formatting input. Diffs for 6.2 and current master are in `diffs/`, if you find them useful feel free to submit them to the official `patches` pages.
