@@ -3,20 +3,19 @@ package components
 import (
 	"fmt"
 	"github.com/godbus/dbus"
+	"io"
 	"log"
 	"math"
 	"net"
 	"os"
-	"regexp"
 	"strconv"
 	"strings"
 )
 
 var (
-	NetworkRegex = regexp.MustCompile(`\s{2,}`)
 	NetworkPath  = "/proc/net/dev"
-	NetworkData  = make(map[string]NetworkDataStore)
-	NetworkCache = make(map[string]NetworkDataStore)
+	NetworkFile  *os.File
+	NetworkData  = make(map[string]*NetworkDataStore)
 	NetworkUnits = []string{"KB", "MB"}
 
 	networkDbus *dbus.Conn
@@ -28,10 +27,20 @@ func init() {
 	check(err)
 
 	check(dbusPrivate(networkDbus))
+
+	for name, _ := range NetworkInterfaces {
+		NetworkData[name] = &NetworkDataStore{
+			last: &NetworkDataStore{},
+		}
+	}
+
+	NetworkFile, err = os.Open(NetworkPath)
+	check(err)
 }
 
 type NetworkDataStore struct {
-	rxBytes, txBytes uint64
+	rx, tx uint64
+	last   *NetworkDataStore
 }
 
 func networkUnitActive(unit ConfigNetwork) bool {
@@ -49,11 +58,14 @@ func networkUnitActive(unit ConfigNetwork) bool {
 }
 
 func networkReadData() {
-	data, err := os.ReadFile(NetworkPath)
+	_, err := NetworkFile.Seek(0, 0)
 	check(err)
 
-	lines := strings.Split(NetworkRegex.ReplaceAllString(string(data), " "), "\n")
+	data, err := io.ReadAll(NetworkFile)
+	check(err)
 
+	fields := strings.FieldsFunc(string(data), func(r rune) bool { return r == ' ' })
+	lines := strings.Split(strings.Join(fields, " "), "\n")
 	for _, line := range lines {
 		fields := strings.Split(line, " ")
 		name := strings.TrimSuffix(fields[0], ":")
@@ -68,38 +80,24 @@ func networkReadData() {
 		tx, err := strconv.ParseUint(fields[9], 10, 64)
 		check(err)
 
-		NetworkCache[name] = NetworkDataStore{
-			rxBytes: rx,
-			txBytes: tx,
-		}
+		last := NetworkData[name].last
+		NetworkData[name].rx = rx - last.rx
+		NetworkData[name].tx = tx - last.tx
+		last.rx = rx
+		last.tx = tx
 	}
 }
 
-func networkCalculateSpeed(iface string, interval uint64) string {
-	cacheData, cached := NetworkCache[iface]
+func networkCalculateSpeed(iface string, interval float64) string {
+	data := NetworkData[iface]
+	// interval is in ms, we need seconds
+	rx, tx := float64(data.rx)/interval*1000/1024.0, float64(data.tx)/interval*1000/1024.0
+	rxUnit, txUnit := calculateUnit(&rx, NetworkUnits), calculateUnit(&tx, NetworkUnits)
 
-	if !cached {
-		networkReadData()
-		cacheData = NetworkCache[iface]
-	}
+	rxString := strconv.FormatFloat(math.Round(rx*100)/100, 'f', 2, 64)
+	txString := strconv.FormatFloat(math.Round(tx*100)/100, 'f', 2, 64)
 
-	netData, ok := NetworkData[iface]
-
-	if !ok {
-		netData = cacheData
-	}
-
-	rxValue, txValue := float64((cacheData.rxBytes-netData.rxBytes)/interval*1000)/1024.0, float64((cacheData.txBytes-netData.txBytes)/interval*1000)/1024.0
-
-	unitRx, unitTx := calculateUnit(&rxValue, NetworkUnits), calculateUnit(&txValue, NetworkUnits)
-
-	rxString := strconv.FormatFloat(math.Round(rxValue*100)/100, 'f', 2, 64)
-	txString := strconv.FormatFloat(math.Round(txValue*100)/100, 'f', 2, 64)
-
-	NetworkData[iface] = cacheData
-	delete(NetworkCache, iface)
-
-	return fmt.Sprintf("%s%s / %s%s", txString, unitTx, rxString, unitRx)
+	return fmt.Sprintf("%s%s / %s%s", txString, txUnit, rxString, rxUnit)
 }
 
 func Network(interval int64) string {
@@ -116,13 +114,15 @@ func Network(interval int64) string {
 	ifaces, err := net.Interfaces()
 	check(err)
 
+	networkReadData()
+
 	for _, iface := range ifaces {
 		if !(net.FlagUp&iface.Flags == net.FlagUp) {
 			continue
 		}
 
 		if icon, ok := NetworkInterfaces[iface.Name]; ok {
-			speed := networkCalculateSpeed(iface.Name, uint64(interval))
+			speed := networkCalculateSpeed(iface.Name, float64(interval))
 			output = append(output, fmt.Sprintf("%s %s", icon, speed))
 		}
 	}

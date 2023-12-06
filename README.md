@@ -2,8 +2,6 @@
 
 ## TODO
 
-- replace `os.ReadFile` with opened file descriptors and use seeking where possible
-
 ## Description
 
 A simple statusbar for dwm (6.2) written in go without using external commands.
