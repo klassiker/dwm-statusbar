@@ -2,6 +2,8 @@
 
 ## TODO
 
+- passive listener for solaar
+
 ## Description
 
 A simple statusbar for dwm (6.2) written in go without using external commands.
