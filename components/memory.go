@@ -2,6 +2,7 @@ package components
 
 import (
 	"fmt"
+	"io"
 	"math"
 	"os"
 	"strconv"
@@ -10,6 +11,7 @@ import (
 
 var (
 	MemoryPath              = "/proc/meminfo"
+	MemoryFile              *os.File
 	MemoryBarWidth          = 40
 	MemoryBarForeground     = "#0000ff"
 	MemoryBarBackground     = "#000000"
@@ -27,13 +29,22 @@ var (
 	}
 )
 
+func init() {
+	var err error
+	MemoryFile, err = os.Open(MemoryPath)
+	check(err)
+}
+
 func memoryCalculateBar(percent float64) string {
 	width := int(math.Round(percent * float64(MemoryBarWidth)))
 	return fmt.Sprintf(MemoryBarDraw, width)
 }
 
 func memoryReadData() {
-	data, err := os.ReadFile(MemoryPath)
+	_, err := MemoryFile.Seek(0, 0)
+	check(err)
+
+	data, err := io.ReadAll(MemoryFile)
 	check(err)
 
 	for _, line := range strings.Split(string(data), "\n") {

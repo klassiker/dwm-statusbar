@@ -4,6 +4,7 @@ package components
 
 import (
 	"fmt"
+	"io"
 	"math"
 	"os"
 	"strconv"
@@ -12,6 +13,7 @@ import (
 
 var (
 	CPUPath              = "/proc/stat"
+	CPUFile              *os.File
 	CPUCores             = 4
 	CPUData              = make([]CPUDataStore, CPUCores+1)
 	CPUBarWidth          = 5
@@ -29,8 +31,17 @@ type CPUDataStore struct {
 	filled        bool
 }
 
+func init() {
+	var err error
+	CPUFile, err = os.Open(CPUPath)
+	check(err)
+}
+
 func cpuReadData() []float64 {
-	data, err := os.ReadFile(CPUPath)
+	_, err := CPUFile.Seek(0, 0)
+	check(err)
+
+	data, err := io.ReadAll(CPUFile)
 	check(err)
 
 	info := filter(strings.Split(string(data), "\n"), func(s string) bool {
