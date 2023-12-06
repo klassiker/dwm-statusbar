@@ -30,16 +30,6 @@ func check(err error) {
 	}
 }
 
-func indexOf(arr []string, s string) int {
-	for i, v := range arr {
-		if v == s {
-			return i
-		}
-	}
-
-	return -1
-}
-
 func filter(vs []string, f func(string) bool) []string {
 	vsf := make([]string, 0)
 
@@ -65,7 +55,7 @@ func fileExists(filename string) bool {
 func calculateUnit(value *float64, units []string) string {
 	var unit int
 
-	for unit = 0; *value > 1024.0 && unit < len(units); unit++ {
+	for unit = 0; *value > 1024.0 && unit < len(units)-1; unit++ {
 		*value /= 1024.0
 	}
 

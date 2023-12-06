@@ -1,8 +1,8 @@
 package components
 
 import (
-	"errors"
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -20,21 +20,28 @@ var (
 	ThermalBad          = drawColor("#ff0000")
 )
 
-func thermalTemperature(input string) string {
-	data, err := os.ReadFile(input)
-	check(err)
+func thermalTemperature(hwmon ConfigThermal) string {
+	out := make([]string, len(hwmon.inputs))
 
-	tempRaw, err := strconv.Atoi(strings.TrimSpace(string(data)))
-	check(err)
+	for i, input := range hwmon.inputs {
+		_, err := input.Seek(0, 0)
+		check(err)
 
-	return thermalTemperatureDrawing(float64(tempRaw) / 1000.0)
+		data, err := io.ReadAll(input)
+		check(err)
+
+		tempRaw, err := strconv.Atoi(strings.TrimSpace(string(data)))
+		check(err)
+
+		out[i] = thermalTemperatureDrawing(float64(tempRaw) / 1000.0)
+	}
+
+	return strings.Join(out, " ")
 }
 
 func thermalTemperatureDrawing(temperature float64) string {
 	var icon string
 	var status string
-
-	reset := DrawReset
 
 	switch {
 	case temperature < 40.0:
@@ -58,6 +65,7 @@ func thermalTemperatureDrawing(temperature float64) string {
 		status = ""
 	}
 
+	reset := DrawReset
 	if status == "" {
 		reset = ""
 	}
@@ -65,20 +73,12 @@ func thermalTemperatureDrawing(temperature float64) string {
 	return fmt.Sprintf("%s%s %0.1f°C%s", status, icon, temperature, reset)
 }
 
-func thermalInputsByNames(names []string) []string {
-	var out []string
-
-	tmp := make([][]string, len(names))
-
-	for i := 0; i < len(tmp); i++ {
-		tmp[i] = []string{}
-	}
-
-	dirs, err := os.ReadDir(ThermalPath)
+func thermalInputsByNames(thermals []ConfigThermal) {
+	hwmons, err := os.ReadDir(ThermalPath)
 	check(err)
 
-	for _, dir := range dirs {
-		path, err := filepath.EvalSymlinks(ThermalPath + dir.Name())
+	for _, hwmon := range hwmons {
+		path, err := filepath.EvalSymlinks(ThermalPath + hwmon.Name())
 		check(err)
 
 		resolved, err := os.Stat(path)
@@ -88,55 +88,49 @@ func thermalInputsByNames(names []string) []string {
 			continue
 		}
 
-		files, err := os.ReadDir(path)
-		check(err)
-
-		var index int
-
-		for _, file := range files {
-			if file.Name() != "name" {
-				continue
-			}
-
-			nameRaw, err := os.ReadFile(path + "/name")
-			check(err)
-
-			name := strings.TrimSpace(string(nameRaw))
-
-			index = indexOf(names, name)
-		}
-
-		if index == -1 {
+		nameRaw, err := os.ReadFile(filepath.Join(path, "name"))
+		if err != nil {
+			fmt.Println("thermal: read name", path, "error:", err)
 			continue
 		}
 
+		name := strings.TrimSpace(string(nameRaw))
+
+		files, err := os.ReadDir(path)
+		check(err)
+
+		var inputs []*os.File
 		for _, file := range files {
-			if ThermalInputPattern.Match([]byte(file.Name())) {
-				tmp[index] = append(tmp[index], path+"/"+file.Name())
+			if ThermalInputPattern.MatchString(file.Name()) {
+				file, err := os.Open(filepath.Join(path, file.Name()))
+				check(err)
+				inputs = append(inputs, file)
+			}
+		}
+
+		for i, thermal := range thermals {
+			if thermal.name == name {
+				thermals[i].inputs = inputs
 			}
 		}
 	}
-
-	for _, arr := range tmp {
-		out = append(out, arr...)
-	}
-
-	return out
 }
 
 func init() {
-	ThermalInputs = thermalInputsByNames(ThermalInputs)
+	thermalInputsByNames(ThermalHwmons)
 
-	if len(ThermalInputs) == 0 {
-		panic(errors.New("thermal: no thermal input found"))
+	for _, input := range ThermalHwmons {
+		if len(ThermalHwmons) == 0 {
+			panic(fmt.Errorf("thermal: no thermal input found for %s", input.name))
+		}
 	}
 }
 
 func Thermal(_ int64) string {
-	output := make([]string, len(ThermalInputs))
+	output := make([]string, len(ThermalHwmons))
 
-	for i, input := range ThermalInputs {
-		output[i] = thermalTemperature(input)
+	for i, hwmon := range ThermalHwmons {
+		output[i] = thermalTemperature(hwmon)
 	}
 
 	return strings.Join(output, " ")
