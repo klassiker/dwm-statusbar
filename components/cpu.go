@@ -14,15 +14,13 @@ import (
 var (
 	CPUPath              = "/proc/stat"
 	CPUFile              *os.File
-	CPUCores             = 4
 	CPUData              = make([]CPUDataStore, CPUCores+1)
 	CPUBarWidth          = 5
-	CPUBarForeground     = "#ff0000"
-	CPUBarBackground     = "#000000"
-	CPUBarDrawBackground = fmt.Sprintf("^c%s^^r0,%d,%d,%d^", CPUBarBackground, BarPadding, CPUBarWidth, BarHeight)
-	CPUBarDrawForeground = fmt.Sprintf("^c%s^^r0,%s,%d,%s^^f%d^", CPUBarForeground, "%d", CPUBarWidth, "%d", CPUBarWidth+2*BarPadding)
+	CPUBarBackground     = "^c#000000^"
+	CPUBarForeground     = "^c#ff0000^"
+	CPUBarDrawBackground = fmt.Sprintf("^r0,1,%d,%d^^f%d^", CPUBarWidth, BarHeight, CPUBarWidth+2*BarPadding)
+	CPUBarDrawForeground = fmt.Sprintf("^r0,%s,%d,%s^^f%d^", "%d", CPUBarWidth, "%d", CPUBarWidth+2*BarPadding)
 	CPUBARDrawLast       = fmt.Sprintf("^f%d^^d^", -2*BarPadding)
-	CPUBarDraw           = CPUBarDrawBackground + CPUBarDrawForeground
 )
 
 type CPUDataStore struct {
@@ -44,13 +42,14 @@ func cpuReadData() []float64 {
 	data, err := io.ReadAll(CPUFile)
 	check(err)
 
+	// TODO dynamic cpu core count
 	info := filter(strings.Split(string(data), "\n"), func(s string) bool {
 		return strings.HasPrefix(s, "cpu")
-	})
+	})[:CPUCores]
 
 	cpuPercent := make([]float64, CPUCores+1)
 	for i, line := range info {
-		split := strings.Split(line[5:], " ")
+		split := strings.Fields(line)[1:]
 
 		idleTime, err := strconv.ParseUint(split[3], 10, 64)
 		check(err)
@@ -90,11 +89,18 @@ func CPUPercentBar(_ int64) string {
 
 	cpuPercent = cpuPercent[1:]
 
+	// TODO cleanup this mess
 	var draw string
+	draw += CPUBarBackground
+	for range cpuPercent {
+		draw += CPUBarDrawBackground
+	}
+	draw += fmt.Sprintf("^f-%d^", CPUCores * (CPUBarWidth+2*BarPadding))
+	draw += CPUBarForeground
 	for _, v := range cpuPercent {
 		height := int(math.Round(float64(BarHeight) * v))
-		offset := BarHeight - height
-		draw += fmt.Sprintf(CPUBarDraw, offset, height)
+		offset := BarHeight - height + BarPadding
+		draw += fmt.Sprintf(CPUBarDrawForeground, offset, height)
 	}
 
 	output := []string{

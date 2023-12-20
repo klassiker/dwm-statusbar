@@ -1,6 +1,8 @@
 //go:build ignore
 // +build ignore
 
+// TODO fix template for new version
+
 package components
 
 import (

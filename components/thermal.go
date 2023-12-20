@@ -88,6 +88,7 @@ func thermalInputsByNames(thermals []ConfigThermal) {
 			continue
 		}
 
+		// TODO allow find by device or multiple devices with the same name
 		nameRaw, err := os.ReadFile(filepath.Join(path, "name"))
 		if err != nil {
 			fmt.Println("thermal: read name", path, "error:", err)
@@ -119,9 +120,9 @@ func thermalInputsByNames(thermals []ConfigThermal) {
 func init() {
 	thermalInputsByNames(ThermalHwmons)
 
-	for _, input := range ThermalHwmons {
-		if len(ThermalHwmons) == 0 {
-			panic(fmt.Errorf("thermal: no thermal input found for %s", input.name))
+	for _, hwmon:= range ThermalHwmons {
+		if len(hwmon.inputs) == 0 {
+			panic(fmt.Errorf("thermal: no thermal input found for %s", hwmon.name))
 		}
 	}
 }

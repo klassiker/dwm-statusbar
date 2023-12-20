@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"github.com/klassiker/dwm-statusbar/components"
 	"strings"
 	"time"
@@ -124,10 +123,6 @@ func main() {
 	}
 
 	updateStatus := func() {
-		text := strings.Join(output, "")
-		if *debugFlag {
-			fmt.Println("length:", len(text))
-		}
 		xsetroot(strings.Join(output, ""))
 	}
 

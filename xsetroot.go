@@ -12,7 +12,9 @@ import (
 	"os/signal"
 	"runtime/debug"
 	"runtime/pprof"
+	"sync"
 	"syscall"
+	"time"
 )
 
 var (
@@ -20,6 +22,7 @@ var (
 	windowRoot           xproto.Window
 	atomName, atomString xproto.Atom
 	shutdown             = make(chan bool)
+	connection           = &sync.Mutex{}
 )
 
 func check(err error) {
@@ -30,11 +33,24 @@ func check(err error) {
 
 func xsetroot(name string) {
 	if *debugFlag {
-		log.Println(name)
+		log.Println(len(name), name)
 		return
 	}
-	data := []byte(name)
-	check(xproto.ChangePropertyChecked(xConn, xproto.PropModeReplace, windowRoot, atomName, atomString, 8, uint32(len(data)), data).Check())
+
+	connection.Lock()
+	defer connection.Unlock()
+
+	for i := 0; i < 5; i++ {
+		data := []byte(name)
+		err := xproto.ChangePropertyChecked(xConn, xproto.PropModeReplace, windowRoot, atomName, atomString, 8, uint32(len(data)), data).Check()
+		if err != nil {
+			log.Println("xsetroot failed:", err, "trying reconnect", name)
+			time.Sleep(5 * time.Millisecond)
+			connect()
+		} else {
+			break
+		}
+	}
 }
 
 func getAtom(name string) xproto.Atom {
@@ -49,14 +65,7 @@ var debugFlag = flag.Bool("debug", false, "don't call xsetroot")
 var nodraw = flag.Bool("nodraw", false, "don't use drawings and colors")
 
 func init() {
-	var err error
-
-	xConn, err = xgb.NewConn()
-	check(err)
-
-	windowRoot = xproto.Setup(xConn).DefaultScreen(xConn).Root
-	atomName = getAtom("WM_NAME")
-	atomString = getAtom("UTF8_STRING")
+	connect()
 
 	c := make(chan os.Signal)
 	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
@@ -79,6 +88,17 @@ func init() {
 	}
 
 	components.NoDraw = *nodraw
+}
+
+func connect() {
+	var err error
+
+	xConn, err = xgb.NewConn()
+	check(err)
+
+	windowRoot = xproto.Setup(xConn).DefaultScreen(xConn).Root
+	atomName = getAtom("WM_NAME")
+	atomString = getAtom("UTF8_STRING")
 }
 
 func recovery() {
