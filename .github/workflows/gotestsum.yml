@@ -1,0 +1,35 @@
+name: gotestsum
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  full:
+    name: gotestsum
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-go@v6
+        with:
+          go-version: stable
+
+      - name: Download dependencies
+        run: go mod download
+
+      - name: gotestsum
+        run: |
+          go run gotest.tools/gotestsum@latest \
+            --junitfile test.xml \
+            --packages ./... \
+            -- -timeout=45m -parallel=4
+
+      - if: always()
+        name: Test Summary
+        uses: test-summary/action@v2
+        with:
+          paths: "test.xml"
