@@ -95,7 +95,7 @@ func CPUPercentBar(_ int64) string {
 	for range cpuPercent {
 		draw += CPUBarDrawBackground
 	}
-	draw += fmt.Sprintf("^f-%d^", CPUCores * (CPUBarWidth+2*BarPadding))
+	draw += fmt.Sprintf("^f-%d^", CPUCores*(CPUBarWidth+2*BarPadding))
 	draw += CPUBarForeground
 	for _, v := range cpuPercent {
 		height := int(math.Round(float64(BarHeight) * v))

@@ -4,9 +4,6 @@ import (
 	"errors"
 	"flag"
 	"fmt"
-	"github.com/jezek/xgb"
-	"github.com/jezek/xgb/xproto"
-	"github.com/klassiker/dwm-statusbar/components"
 	"log"
 	"os"
 	"os/signal"
@@ -15,6 +12,10 @@ import (
 	"sync"
 	"syscall"
 	"time"
+
+	"github.com/jezek/xgb"
+	"github.com/jezek/xgb/xproto"
+	"github.com/klassiker/dwm-statusbar/components"
 )
 
 var (

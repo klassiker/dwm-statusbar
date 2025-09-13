@@ -120,7 +120,7 @@ func thermalInputsByNames(thermals []ConfigThermal) {
 func init() {
 	thermalInputsByNames(ThermalHwmons)
 
-	for _, hwmon:= range ThermalHwmons {
+	for _, hwmon := range ThermalHwmons {
 		if len(hwmon.inputs) == 0 {
 			panic(fmt.Errorf("thermal: no thermal input found for %s", hwmon.name))
 		}

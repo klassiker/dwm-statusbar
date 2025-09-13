@@ -1,9 +1,10 @@
 package main
 
 import (
-	"github.com/klassiker/dwm-statusbar/components"
 	"strings"
 	"time"
+
+	"github.com/klassiker/dwm-statusbar/components"
 )
 
 const (
