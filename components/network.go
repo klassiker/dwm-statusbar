@@ -14,7 +14,6 @@ import (
 
 var (
 	NetworkPath  = "/proc/net/dev"
-	NetworkFile  *os.File
 	NetworkData  = make(map[string]*NetworkDataStore)
 	NetworkUnits = []string{"KB", "MB"}
 
@@ -33,9 +32,6 @@ func init() {
 			last: &NetworkDataStore{},
 		}
 	}
-
-	NetworkFile, err = os.Open(NetworkPath)
-	check(err)
 }
 
 type NetworkDataStore struct {
@@ -58,10 +54,10 @@ func networkUnitActive(unit ConfigNetwork) bool {
 }
 
 func networkReadData() {
-	_, err := NetworkFile.Seek(0, 0)
+	networkFile, err := os.Open(NetworkPath)
 	check(err)
 
-	data, err := io.ReadAll(NetworkFile)
+	data, err := io.ReadAll(networkFile)
 	check(err)
 
 	fields := strings.FieldsFunc(string(data), func(r rune) bool { return r == ' ' })
