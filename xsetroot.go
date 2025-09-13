@@ -26,12 +26,6 @@ var (
 	connection           = &sync.Mutex{}
 )
 
-func check(err error) {
-	if err != nil {
-		log.Panic(err)
-	}
-}
-
 func xsetroot(name string) {
 	if *debugFlag {
 		log.Println(len(name), name)
@@ -47,17 +41,35 @@ func xsetroot(name string) {
 		if err != nil {
 			log.Println("xsetroot failed:", err, "trying reconnect", name)
 			time.Sleep(5 * time.Millisecond)
-			connect()
+
+			xConn, err = xgb.NewConn()
+			if err != nil {
+				log.Fatal(err)
+			}
+
+			windowRoot = xproto.Setup(xConn).DefaultScreen(xConn).Root
+
+			atomName, err = getAtom("WM_NAME")
+			if err != nil {
+				log.Fatal(err)
+			}
+
+			atomString, err = getAtom("UTF8_STRING")
+			if err != nil {
+				log.Fatal(err)
+			}
 		} else {
 			break
 		}
 	}
 }
 
-func getAtom(name string) xproto.Atom {
+func getAtom(name string) (xproto.Atom, error) {
 	atom, err := xproto.InternAtom(xConn, true, uint16(len(name)), name).Reply()
-	check(err)
-	return atom.Atom
+	if err != nil {
+		return 0, err
+	}
+	return atom.Atom, err
 }
 
 var memprofile = flag.String("memprofile", "", "write memory profile to file")
@@ -86,7 +98,10 @@ func init() {
 		if err != nil {
 			log.Fatal(err)
 		}
-		check(pprof.StartCPUProfile(f))
+
+		if err := pprof.StartCPUProfile(f); err != nil {
+			log.Fatal(err)
+		}
 	}
 
 	components.NoDraw = *nodraw
@@ -96,11 +111,21 @@ func connect() {
 	var err error
 
 	xConn, err = xgb.NewConn()
-	check(err)
+	if err != nil {
+		log.Fatal(err)
+	}
 
 	windowRoot = xproto.Setup(xConn).DefaultScreen(xConn).Root
-	atomName = getAtom("WM_NAME")
-	atomString = getAtom("UTF8_STRING")
+
+	atomName, err = getAtom("WM_NAME")
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	atomString, err = getAtom("UTF8_STRING")
+	if err != nil {
+		log.Fatal(err)
+	}
 }
 
 func recovery() {
@@ -135,8 +160,12 @@ func cleanup(err error) {
 		if err != nil {
 			log.Fatal(err)
 		}
-		check(pprof.WriteHeapProfile(f))
-		check(f.Close())
+		if err = pprof.WriteHeapProfile(f); err != nil {
+			log.Fatal(err)
+		}
+		if err = f.Close(); err != nil {
+			log.Fatal(err)
+		}
 	}
 
 	os.Exit(1)
