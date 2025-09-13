@@ -40,7 +40,7 @@ func memoryCalculateBar(percent float64) string {
 	return fmt.Sprintf(MemoryBarDraw, width)
 }
 
-func memoryReadData() {
+func memoryReadData() map[string]int {
 	_, err := MemoryFile.Seek(0, 0)
 	check(err)
 
@@ -63,14 +63,18 @@ func memoryReadData() {
 			}
 		}
 	}
+
+	return MemoryData
+}
+
+func memoryCalculateUsed(data map[string]int) float64 {
+	return float64(data["MemTotal"] - data["MemFree"] - data["Buffers"] - data["Cached"] - data["SReclaimable"] + data["Shmem"])
 }
 
 func Memory(_ int64) string {
-	memoryReadData()
-
-	memUsed := float64(MemoryData["MemTotal"] - MemoryData["MemFree"] - MemoryData["Buffers"] - MemoryData["Cached"] - MemoryData["SReclaimable"] + MemoryData["Shmem"])
-
-	memBar := memoryCalculateBar(memUsed / float64(MemoryData["MemTotal"]))
+	data := memoryReadData()
+	memUsed := memoryCalculateUsed(data)
+	memBar := memoryCalculateBar(memUsed / float64(data["MemTotal"]))
 	memUnit := calculateUnit(&memUsed, MemoryUnits)
 	memUsedString := strconv.FormatFloat(math.Round(memUsed*100)/100, 'f', 2, 64)
 
