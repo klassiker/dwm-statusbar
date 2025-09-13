@@ -1,8 +1,6 @@
 //go:build ignore
 // +build ignore
 
-// TODO fix template for new version
-
 package components
 
 import (
@@ -27,13 +25,19 @@ type ConfigNetwork struct {
 	status string
 }
 
+type ConfigThermal struct {
+	name   string
+	inputs []*os.File
+}
+
 var (
 	NoDraw = false
 
-	BarHeight  = 21 - 2*BarPadding
+	BarHeight  = 19
 	BarPadding = 1
 
 	Batteries = 2
+	CPUCores  = 32
 
 	SolaarDevices = []ConfigSolaar{
 		{"", HidKeyboard},
@@ -54,7 +58,7 @@ var (
 		{"openvpn-client@profile.service", "Initialization Sequence Completed"},
 	}
 
-	PulseaudioDevice        = "alsa_output.pci-0000_00_00.0."
+	PulseaudioDevice        = "alsa_output.pci-0000_03_00.1."
 	PulseaudioHeadphonePort = "analog-output-headphones"
 	PulseaudioSinkPrefix    = "/org/pulseaudio/core1/sink"
 
@@ -76,8 +80,8 @@ var (
 		"unknown": IconSoundStateUnknown,
 	}
 
-	ThermalInputs = []string{
-		"coretemp",
+	ThermalHwmons = []ConfigThermal{
+		{name: "k10temp"},
 	}
 )
 
@@ -105,6 +109,7 @@ const (
 	IconCurrentTimeClock     = "\uf017" // clock
 	IconFilesystemRoot       = "\uf0a0" // hdd
 	IconFilesystemHome       = "\uf015" // home
+	IconFilesystemUser       = "\uf007" // user
 	IconMemory               = "\uf538" // memory
 	IconNetworkWifi          = "\uf1eb" // wifi
 	IconNetworkCable         = "\uf796" // ethernet
