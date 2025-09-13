@@ -6,6 +6,8 @@
 package components
 
 import (
+	"os"
+
 	"github.com/godbus/dbus"
 )
 

@@ -1,10 +1,11 @@
 package components
 
 import (
-	"github.com/godbus/dbus"
 	"log"
 	"sync"
 	"time"
+
+	"github.com/godbus/dbus"
 )
 
 type SoundPulseaudioStateStruct struct {

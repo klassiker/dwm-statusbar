@@ -3,9 +3,10 @@ package components
 import (
 	"errors"
 	"fmt"
-	"github.com/godbus/dbus"
 	"strconv"
 	"strings"
+
+	"github.com/godbus/dbus"
 )
 
 var (

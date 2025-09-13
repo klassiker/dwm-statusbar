@@ -2,12 +2,13 @@ package components
 
 import (
 	"fmt"
-	"github.com/godbus/dbus"
-	"github.com/sqp/pulseaudio"
 	"log"
 	"math"
 	"strconv"
 	"strings"
+
+	"github.com/godbus/dbus"
+	"github.com/sqp/pulseaudio"
 )
 
 var (
