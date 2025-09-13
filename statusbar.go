@@ -27,8 +27,8 @@ var (
 		},
 		{
 			{function: components.Uptime, interval: 60 * second},
-			{function: components.Battery, interval: 10 * second},
-			{function: components.Solaar, interval: 5 * minute},
+			// {function: components.Battery, interval: 10 * second},
+			// {function: components.Solaar, interval: 5 * minute},
 			{function: components.Filesystem, interval: 60 * second},
 			{function: components.Thermal, interval: 1 * second},
 			{register: components.Sound},
