@@ -1,8 +1,10 @@
 package components
 
 import (
-	"github.com/godbus/dbus"
+	"log"
 	"strings"
+
+	"github.com/godbus/dbus"
 )
 
 var (
@@ -33,6 +35,9 @@ func (ms *SoundMPRISStateStruct) Metadata(data dbus.Variant) {
 		ms.artist = artist[0]
 	}
 	ms.title, ok = metadata["xesam:title"].Value().(string)
+	if !ok {
+		log.Printf("mpris: title not string: %+v\n", metadata["xesam:title"].Value())
+	}
 }
 
 func (ms *SoundMPRISStateStruct) Stream(data dbus.Variant) {

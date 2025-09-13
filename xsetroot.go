@@ -68,7 +68,8 @@ var nodraw = flag.Bool("nodraw", false, "don't use drawings and colors")
 func init() {
 	connect()
 
-	c := make(chan os.Signal)
+	// this needs to be buffered
+	c := make(chan os.Signal, 32)
 	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
 
 	go func() {

@@ -2,7 +2,6 @@ package components
 
 import (
 	"fmt"
-	"github.com/godbus/dbus"
 	"io"
 	"log"
 	"math"
@@ -10,6 +9,8 @@ import (
 	"os"
 	"strconv"
 	"strings"
+
+	"github.com/godbus/dbus"
 )
 
 var (
@@ -27,7 +28,7 @@ func init() {
 
 	check(dbusPrivate(networkDbus))
 
-	for name, _ := range NetworkInterfaces {
+	for name := range NetworkInterfaces {
 		NetworkData[name] = &NetworkDataStore{
 			last: &NetworkDataStore{},
 		}
@@ -113,7 +114,7 @@ func Network(interval int64) string {
 	networkReadData()
 
 	for _, iface := range ifaces {
-		if !(net.FlagUp&iface.Flags == net.FlagUp) {
+		if net.FlagUp&iface.Flags != net.FlagUp {
 			continue
 		}
 

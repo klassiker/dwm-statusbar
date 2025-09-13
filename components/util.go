@@ -2,10 +2,11 @@ package components
 
 import (
 	"fmt"
-	"github.com/godbus/dbus"
 	"log"
 	"os"
 	"runtime"
+
+	"github.com/godbus/dbus"
 )
 
 const (
@@ -111,12 +112,14 @@ func batteryDraw(level int) string {
 
 func dbusPrivate(conn *dbus.Conn) error {
 	if err := conn.Auth(nil); err != nil {
-		conn.Close()
+		// we already have an error, so we just try to close it here
+		_ = conn.Close()
 		return err
 	}
 
 	if err := conn.Hello(); err != nil {
-		conn.Close()
+		// we already have an error, so we just try to close it here
+		_ = conn.Close()
 		return err
 	}
 
