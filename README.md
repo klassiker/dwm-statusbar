@@ -40,7 +40,7 @@ Outputs are configured in `statusbar.go` with refresh interval in miliseconds. T
 
 Async components have a register function and use a channel to instantly update the statusbar.
 
-Copy the `config.def.go` in the components folder to `config.go` and remove the first line.
+Modify `config.go` in the `components` folder.
 
 Where to find configuration values:
 
